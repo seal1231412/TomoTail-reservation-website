@@ -118,9 +118,21 @@
 		.reservation-list > p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
 		.reservation-items { display: grid; gap: 10px; }
 		.reservation-item { padding: 15px; border: 1px solid var(--line); border-left: 3px solid var(--teal); background: #fbfcfa; }
+		.reservation-item button { width: 100%; border: 0; padding: 0; color: inherit; background: transparent; text-align: left; }
 		.reservation-item strong { display: block; margin-bottom: 5px; font-size: 14px; }
 		.reservation-item p { margin: 3px 0; color: #52605e; font-size: 12px; }
 		.reservation-item .reservation-meta { color: var(--muted); font-size: 11px; }
+		.admin-filters { display: grid; grid-template-columns: 1fr 180px; gap: 10px; margin-bottom: 16px; }
+		.audit-list { display: grid; gap: 7px; margin-top: 14px; }
+		.audit-entry { padding: 10px 12px; border-left: 2px solid var(--teal); color: #52605e; background: #fbfcfa; font-size: 12px; }
+		.details-dialog { width: min(520px, calc(100% - 30px)); border: 0; padding: 0; box-shadow: 0 25px 90px rgba(22,48,46,.25); }
+		.details-dialog::backdrop { background: rgba(17,63,60,.38); }
+		.details-dialog form { position: relative; padding: 30px; }
+		.details-dialog h2 { margin: 0 0 18px; font: 700 22px 'Manrope', sans-serif; }
+		.details-content { margin-bottom: 18px; color: #52605e; font-size: 13px; }
+		.details-content p { margin: 7px 0; }
+		.details-actions { display: flex; gap: 10px; }
+		.details-actions button { flex: 1; }
 		.availability-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--line); color: #52605e; font-size: 13px; }
 		.switch { width: 40px; height: 23px; border: 0; border-radius: 20px; padding: 3px; background: #cfd6d3; }
 		.switch::after { content: ''; display: block; width: 17px; height: 17px; border-radius: 50%; background: white; transition: transform .2s; }
@@ -183,21 +195,25 @@
 				</form>
 				<section class="admin-view" id="adminView">
 				<div class="admin-banner"><div><strong>Admin mode is on</strong><span id="adminHelp">Turn editing on, then click days to cycle them open or closed.</span></div><div class="admin-actions"><button class="edit-toggle" id="editAvailability" type="button">Edit availability</button><button class="icon-btn" id="closeAdmin" type="button" aria-label="Close admin mode"><i class="icon-x"></i></button></div></div>
-				<div class="admin-tools"><div class="tool-card"><h3>Availability legend</h3><p>Grey days can be reserved. Red days are closed or already reserved.</p><div class="availability-toggle"><span>Click-to-edit availability</span><button class="switch" id="availabilitySwitch" type="button" aria-label="Toggle availability editing"></button></div></div><div class="tool-card"><h3>Quick overview</h3><p id="overviewText"></p><div class="availability-toggle"><span>Reservations are stored locally</span><i class="icon-database" style="color:var(--teal)"></i></div><button class="reset-btn" id="resetReservations" type="button">Reset all reservations</button></div></div>
-				<div class="reservation-list"><h3>Reservations</h3><p>Review guest details, dates, times, and dogs.</p><div class="reservation-items" id="reservationItems"></div></div>
+				<div class="admin-tools"><div class="tool-card"><h3>Availability legend</h3><p>Grey days can be reserved. Red days are closed or already reserved.</p><div class="availability-toggle"><span>Click-to-edit availability</span><button class="switch" id="availabilitySwitch" type="button" aria-label="Toggle availability editing"></button></div></div><div class="tool-card"><h3>Quick overview</h3><p id="overviewText"></p><label for="capacityInput">Maximum dogs per day</label><input id="capacityInput" type="number" min="1" max="100" value="5"><button class="secondary-btn" id="saveCapacity" type="button">Save capacity</button><div class="availability-toggle"><span>Reservations are stored locally</span><i class="icon-database" style="color:var(--teal)"></i></div><button class="reset-btn" id="resetReservations" type="button">Reset all reservations</button></div></div>
+				<div class="reservation-list"><h3>Reservations</h3><p>Review guest details, dates, times, and dogs.</p><div class="admin-filters"><input id="reservationSearch" type="search" placeholder="Search name or phone"><select id="reservationStatusFilter"><option value="all">All statuses</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select></div><div class="reservation-items" id="reservationItems"></div></div>
+				<div class="reservation-list"><h3>Audit history</h3><p>Recent admin actions.</p><div class="audit-list" id="auditItems"></div></div>
 				</section>
 			</section>
 		</main>
 	</div>
 	<dialog class="login-dialog" id="loginDialog">
-		<form id="loginForm"><button class="dialog-close icon-btn" id="closeLogin" type="button" aria-label="Close login"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Staff access</p><h2>Admin login</h2><p>Sign in to manage which days can be reserved.</p><label for="adminPassword">Password</label><input id="adminPassword" type="password" placeholder="Enter password" required><button class="primary-btn" type="submit">Continue</button><small>Demo password: <strong>admin123</strong></small></form>
+		<form id="loginForm"><button class="dialog-close icon-btn" id="closeLogin" type="button" aria-label="Close login"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Staff access</p><h2>Admin login</h2><p>Sign in with your staff account.</p><label for="adminEmail">Staff email</label><input id="adminEmail" type="email" placeholder="staff@example.com" required><label for="adminPassword">Password</label><input id="adminPassword" type="password" placeholder="Enter password" required><button class="primary-btn" type="submit">Continue</button></form>
 	</dialog>
 	<dialog class="cancel-dialog" id="cancelDialog">
 		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the phone number used for the reservation, then choose the day to cancel.</p><label for="cancelPhone">Phone number</label><input id="cancelPhone" type="tel" required placeholder="e.g. +66 81 234 5678"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter phone number first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
 	</dialog>
+	<dialog class="details-dialog" id="detailsDialog">
+		<form id="detailsForm"><button class="dialog-close icon-btn" id="closeDetails" type="button" aria-label="Close details"><span aria-hidden="true">&times;</span></button><h2>Reservation details</h2><div class="details-content" id="detailsContent"></div><label for="detailsStatus">Status</label><select id="detailsStatus"><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select><div class="details-actions"><button class="secondary-btn" id="closeDetailsButton" type="button">Close</button><button class="primary-btn" type="submit">Save status</button></div></form>
+	</dialog>
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=53a953e"></script>
+	<script src="web.js?v=admin-features"></script>
 </body>
 </html>

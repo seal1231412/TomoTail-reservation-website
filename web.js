@@ -15,14 +15,26 @@ const editAvailability = document.getElementById('editAvailability');
 const adminHelp = document.getElementById('adminHelp');
 const overviewText = document.getElementById('overviewText');
 const reservationItems = document.getElementById('reservationItems');
+const reservationSearch = document.getElementById('reservationSearch');
+const reservationStatusFilter = document.getElementById('reservationStatusFilter');
+const capacityInput = document.getElementById('capacityInput');
+const saveCapacity = document.getElementById('saveCapacity');
+const auditItems = document.getElementById('auditItems');
 const toast = document.getElementById('toast');
 const loginDialog = document.getElementById('loginDialog');
 const loginForm = document.getElementById('loginForm');
+const adminEmail = document.getElementById('adminEmail');
 const workspace = document.querySelector('.workspace');
 const cancelDialog = document.getElementById('cancelDialog');
 const cancelForm = document.getElementById('cancelForm');
 const cancelPhone = document.getElementById('cancelPhone');
 const cancelDate = document.getElementById('cancelDate');
+const detailsDialog = document.getElementById('detailsDialog');
+const detailsForm = document.getElementById('detailsForm');
+const detailsContent = document.getElementById('detailsContent');
+const detailsStatus = document.getElementById('detailsStatus');
+const closeDetails = document.getElementById('closeDetails');
+const closeDetailsButton = document.getElementById('closeDetailsButton');
 const languageToggle = document.getElementById('languageToggle');
 
 const appConfig = window.appConfig || {};
@@ -46,7 +58,8 @@ function normalizeReservation(reservation) {
 		dropOff: reservation.dropOff || reservation.dropoff || '',
 		pickUp: reservation.pickUp || reservation.pickup || '',
 		phone: reservation.phone || '',
-		notes: reservation.notes || ''
+		notes: reservation.notes || '',
+		status: reservation.status || 'pending'
 	};
 }
 
@@ -59,9 +72,10 @@ async function loadInitialStore() {
 
 	if (supabaseClient) {
 		try {
-			const [unavailableResponse, reservationsResponse] = await Promise.all([
+			const [unavailableResponse, reservationsResponse, settingsResponse] = await Promise.all([
 				supabaseClient.from('unavailable_dates').select('date'),
-				supabaseClient.from('reservations').select('*')
+				supabaseClient.from('reservations').select('*'),
+				supabaseClient.from('app_settings').select('max_dogs_per_day').eq('id', 1).maybeSingle()
 			]);
 
 			if (!unavailableResponse.error && Array.isArray(unavailableResponse.data)) {
@@ -70,6 +84,10 @@ async function loadInitialStore() {
 
 			if (!reservationsResponse.error && Array.isArray(reservationsResponse.data)) {
 				fallbackReservations = reservationsResponse.data.map(normalizeReservation);
+			}
+			if (!settingsResponse.error && settingsResponse.data?.max_dogs_per_day) {
+				maxReservationsPerDay = settingsResponse.data.max_dogs_per_day;
+				capacityInput.value = maxReservationsPerDay;
 			}
 		} catch (error) {
 			console.warn('Supabase read failed, falling back to browser storage.', error);
@@ -83,12 +101,23 @@ async function loadInitialStore() {
 	buildReservationCounts();
 }
 
-async function persistStore() {
+async function persistStore(newReservations = null) {
 	localStorage.setItem('harborUnavailable', JSON.stringify([...unavailableDates]));
 	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
 
 	if (supabaseClient) {
 		try {
+			if (newReservations) {
+				const newRows = newReservations.map((reservation) => ({
+					id: `${reservation.reservationId || reservation.reservationid || reservation.id}-${reservation.date}`,
+					reservationid: reservation.reservationId || reservation.reservationid || reservation.id,
+					date: reservation.date, name: reservation.name || '', phone: reservation.phone || '', notes: reservation.notes || '', status: reservation.status || 'pending',
+					dogcount: Number(reservation.dogCount ?? reservation.dogcount) || 0, dogs: Array.isArray(reservation.dogs) ? reservation.dogs : [], dropoff: reservation.dropOff || reservation.dropoff || '', pickup: reservation.pickUp || reservation.pickup || ''
+				}));
+				const insertResponse = await supabaseClient.from('reservations').insert(newRows);
+				if (insertResponse.error) throw insertResponse.error;
+				return;
+			}
 			const unavailableDeleteResponse = await supabaseClient.from('unavailable_dates').delete().not('date', 'is', null);
 			if (unavailableDeleteResponse.error) throw unavailableDeleteResponse.error;
 			const unavailableRows = [...unavailableDates].map((date) => ({ date }));
@@ -106,6 +135,7 @@ async function persistStore() {
 					name: reservation.name || '',
 					phone: reservation.phone || '',
 					notes: reservation.notes || '',
+					status: reservation.status || 'pending',
 					dogcount: Number(reservation.dogCount ?? reservation.dogcount) || 0,
 					dogs: Array.isArray(reservation.dogs) ? reservation.dogs : [],
 					dropoff: reservation.dropOff || reservation.dropoff || '',
@@ -137,9 +167,11 @@ let displayedMonth = new Date();
 const selectedDates = new Set();
 let adminMode = false;
 let editingAvailability = false;
-const MAX_RESERVATIONS_PER_DAY = 5;
+let maxReservationsPerDay = 5;
 let storedUnavailable = [];
 let storedReservations = [];
+let auditEntries = [];
+let selectedReservationId = null;
 const unavailableDates = new Set();
 const reservationCounts = new Map();
 
@@ -163,7 +195,12 @@ function renderReservationList() {
 		if (!groupedReservations.has(reservationId)) groupedReservations.set(reservationId, []);
 		groupedReservations.get(reservationId).push(reservation);
 	});
-	const reservations = [...groupedReservations.entries()].sort(([, first], [, second]) => first[0].date.localeCompare(second[0].date));
+	const search = reservationSearch.value.trim().toLowerCase();
+	const status = reservationStatusFilter.value;
+	const reservations = [...groupedReservations.entries()].filter(([, entries]) => {
+		const reservation = entries[0];
+		return (status === 'all' || reservation.status === status) && (!search || `${reservation.name} ${reservation.phone}`.toLowerCase().includes(search));
+	}).sort(([, first], [, second]) => first[0].date.localeCompare(second[0].date));
 	if (!reservations.length) {
 		reservationItems.innerHTML = '<p class="reservation-meta">No reservations yet.</p>';
 		return;
@@ -172,12 +209,47 @@ function renderReservationList() {
 		const first = entries[0];
 		const dates = entries.map((entry) => formatDate(entry.date)).join(', ');
 		const weights = Array.isArray(first.dogs) && first.dogs.length ? first.dogs.map((dog) => `${dog.weight} kg`).join(', ') : 'Not provided';
-		return `<article class="reservation-item"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} | <b>Phone:</b> ${escapeHTML(first.phone || 'Not provided')}</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p><b>Notes:</b> ${escapeHTML(first.notes || 'None')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></article>`;
+		return `<article class="reservation-item"><button type="button" data-reservation-id="${escapeHTML(reservationId)}"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} | <b>Phone:</b> ${escapeHTML(first.phone || 'Not provided')}</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p><b>Status:</b> ${escapeHTML(first.status)} | <b>Notes:</b> ${escapeHTML(first.notes || 'None')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></button></article>`;
 	}).join('');
+	reservationItems.querySelectorAll('[data-reservation-id]').forEach((button) => button.addEventListener('click', () => openReservationDetails(button.dataset.reservationId)));
 }
 
 function escapeHTML(value) {
 	return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+}
+
+function getReservationGroups() {
+	const groups = new Map();
+	storedReservations.map(normalizeReservation).forEach((reservation) => {
+		const id = reservation.reservationId || `legacy-${reservation.date}-${reservation.phone || 'guest'}`;
+		if (!groups.has(id)) groups.set(id, []);
+		groups.get(id).push(reservation);
+	});
+	return groups;
+}
+
+function openReservationDetails(reservationId) {
+	const entries = getReservationGroups().get(reservationId);
+	if (!entries) return;
+	const reservation = entries[0];
+	detailsContent.innerHTML = `<p><b>Guest:</b> ${escapeHTML(reservation.name || 'Test reservation')}</p><p><b>Phone:</b> ${escapeHTML(reservation.phone || 'Not provided')}</p><p><b>Dates:</b> ${entries.map((entry) => formatDate(entry.date)).join(', ')}</p><p><b>Dogs:</b> ${dogsIn(reservation)}</p><p><b>Weights:</b> ${escapeHTML((reservation.dogs || []).map((dog) => `${dog.weight} kg`).join(', ') || 'Not provided')}</p><p><b>Drop-off:</b> ${escapeHTML(reservation.dropOff || 'Not selected')}</p><p><b>Pick-up:</b> ${escapeHTML(reservation.pickUp || 'Not selected')}</p><p><b>Notes:</b> ${escapeHTML(reservation.notes || 'None')}</p>`;
+	detailsStatus.value = reservation.status;
+	selectedReservationId = reservationId;
+	detailsDialog.showModal();
+}
+
+async function writeAudit(action, reservationId = null, details = {}) {
+	if (!supabaseClient) return;
+	const { error } = await supabaseClient.from('audit_log').insert({ action, reservation_id: reservationId, details });
+	if (error) console.error('Audit log failed.', error);
+}
+
+async function loadAuditEntries() {
+	if (!supabaseClient || !auditItems) return;
+	const { data, error } = await supabaseClient.from('audit_log').select('*').order('created_at', { ascending: false }).limit(20);
+	if (error) return;
+	auditEntries = data || [];
+	auditItems.innerHTML = auditEntries.length ? auditEntries.map((entry) => `<div class="audit-entry"><b>${escapeHTML(entry.action)}</b> · ${new Date(entry.created_at).toLocaleString()}${entry.reservation_id ? ` · ${escapeHTML(entry.reservation_id)}` : ''}</div>`).join('') : '<p class="reservation-meta">No admin actions yet.</p>';
 }
 
 function dateKey(year, month, day) {
@@ -254,10 +326,11 @@ function applyLanguage() {
 	document.querySelector('.login-dialog .eyebrow').textContent = t('staff');
 	document.querySelector('.login-dialog h2').textContent = t('adminLogin');
 	document.querySelector('.login-dialog p:not(.eyebrow)').textContent = t('loginHelp');
-	document.querySelector('.login-dialog label').textContent = t('password');
+	document.querySelector('.login-dialog label[for="adminEmail"]').textContent = 'Staff email';
+	document.querySelector('.login-dialog label[for="adminPassword"]').textContent = t('password');
+	adminEmail.placeholder = 'staff@example.com';
 	document.getElementById('adminPassword').placeholder = t('enterPassword');
 	document.querySelector('.login-dialog .primary-btn').textContent = t('continue');
-	document.querySelector('.login-dialog small').firstChild.textContent = `${t('demoPassword')} `;
 	document.querySelector('.cancel-dialog .eyebrow').textContent = t('reservationChanges');
 	document.querySelector('.cancel-dialog h2').textContent = t('cancelReservation');
 	document.querySelector('.cancel-dialog p:not(.eyebrow)').textContent = t('cancelHelp');
@@ -288,10 +361,10 @@ function renderCalendar() {
 		const key = dateKey(year, month, day);
 		const reservationCount = reservationCounts.get(key) || 0;
 		const isClosed = unavailableDates.has(key);
-		const isFull = reservationCount >= MAX_RESERVATIONS_PER_DAY;
+		const isFull = reservationCount >= maxReservationsPerDay;
 		const isPast = key < todayKey;
 		const isUnavailable = isClosed || isFull;
-		const spotsLeft = Math.max(0, MAX_RESERVATIONS_PER_DAY - reservationCount);
+		const spotsLeft = Math.max(0, maxReservationsPerDay - reservationCount);
 		const dayButton = document.createElement('button');
 		dayButton.type = 'button';
 		dayButton.className = `day${isUnavailable ? ' booked' : ''}${reservationCount > 0 && !isFull && !isClosed ? ' reserved' : ''}${reservationCount >= 3 && !isUnavailable ? ' busy' : ''}${isFull ? ' full' : ''}${isPast ? ' past' : ''}${key === todayKey ? ' today' : ''}${selectedDates.has(key) ? ' selected' : ''}`;
@@ -309,10 +382,11 @@ function selectDate(key) {
 		if ((reservationCounts.get(key) || 0) > 0) return showToast(currentLanguage === 'th' ? 'ไม่สามารถเปลี่ยนวันที่มีการจองแล้ว' : 'Reserved days cannot be changed.');
 		if (unavailableDates.has(key)) unavailableDates.delete(key); else unavailableDates.add(key);
 		persistStore();
+		writeAudit('Changed availability', null, { date: key, available: !unavailableDates.has(key) });
 		renderCalendar();
 		return;
 	}
-	if (!adminMode && (unavailableDates.has(key) || (reservationCounts.get(key) || 0) >= MAX_RESERVATIONS_PER_DAY)) {
+	if (!adminMode && (unavailableDates.has(key) || (reservationCounts.get(key) || 0) >= maxReservationsPerDay)) {
 		showToast(currentLanguage === 'th' ? 'วันที่นี้ไม่ว่าง กรุณาเลือกวันอื่น' : 'That day is unavailable. Please choose another.');
 		return;
 	}
@@ -393,18 +467,48 @@ document.getElementById('adminButton').addEventListener('click', () => {
 	loginDialog.showModal();
 	document.getElementById('adminPassword').focus();
 });
-loginForm.addEventListener('submit', (event) => {
+loginForm.addEventListener('submit', async (event) => {
 	event.preventDefault();
-	if (document.getElementById('adminPassword').value !== 'admin123') return showToast('Incorrect password');
+	if (!supabaseClient) return showToast('Supabase authentication is unavailable.');
+	const { error } = await supabaseClient.auth.signInWithPassword({ email: adminEmail.value.trim(), password: document.getElementById('adminPassword').value });
+	if (error) return showToast('Incorrect email or password.');
 	loginDialog.close();
 	loginForm.reset();
 	enableAdminMode();
+	loadAuditEntries();
 });
 document.getElementById('closeLogin').addEventListener('click', () => loginDialog.close());
+reservationSearch.addEventListener('input', renderReservationList);
+reservationStatusFilter.addEventListener('change', renderReservationList);
+closeDetails.addEventListener('click', () => detailsDialog.close());
+closeDetailsButton.addEventListener('click', () => detailsDialog.close());
+detailsForm.addEventListener('submit', async (event) => {
+	event.preventDefault();
+	if (!selectedReservationId) return;
+	storedReservations = storedReservations.map((reservation) => normalizeReservation(reservation).reservationId === selectedReservationId ? { ...reservation, status: detailsStatus.value } : reservation);
+	await persistStore();
+	await writeAudit('Updated reservation status', selectedReservationId, { status: detailsStatus.value });
+	detailsDialog.close();
+	renderCalendar();
+	loadAuditEntries();
+});
+saveCapacity.addEventListener('click', async () => {
+	const value = Math.max(1, Math.min(100, Number(capacityInput.value) || 5));
+	capacityInput.value = value;
+	maxReservationsPerDay = value;
+	if (supabaseClient) {
+		const { error } = await supabaseClient.from('app_settings').upsert({ id: 1, max_dogs_per_day: value }, { onConflict: 'id' });
+		if (error) return showToast('Could not save capacity.');
+	}
+	await writeAudit('Changed daily capacity', null, { maxDogsPerDay: value });
+	renderCalendar();
+	loadAuditEntries();
+});
 document.getElementById('closeAdmin').addEventListener('click', () => {
 	adminMode = false;
 	editingAvailability = false;
 	workspace.classList.remove('admin-active');
+	if (supabaseClient) supabaseClient.auth.signOut();
 	document.getElementById('adminButton').innerHTML = `<i class="icon-lock-keyhole"></i> ${t('adminLogin')}`;
 	renderCalendar();
 });
@@ -427,8 +531,10 @@ document.getElementById('resetReservations').addEventListener('click', async () 
 	localStorage.removeItem('harborReservations');
 	localStorage.removeItem('harborUnavailable');
 	await persistStore();
+	await writeAudit('Reset all reservations');
 	renderCalendar();
 	showToast('All reservations reset');
+	loadAuditEntries();
 });
 document.getElementById('cancelButton').addEventListener('click', () => {
 	cancelDialog.showModal();
@@ -467,6 +573,7 @@ cancelForm.addEventListener('submit', async (event) => {
 		if (remainingDogs > 0) reservationCounts.set(reservation.date, remainingDogs); else reservationCounts.delete(reservation.date);
 	});
 	await persistStore();
+	await writeAudit('Cancelled reservation', cancelDate.value);
 	cancelForm.reset();
 	updateCancellationDates();
 	cancelDialog.close();
@@ -499,7 +606,7 @@ bookingForm.addEventListener('submit', async (event) => {
 		storedReservations.push({ date, ...reservationDetails });
 		reservationCounts.set(date, (reservationCounts.get(date) || 0) + weights.length);
 	});
-	await persistStore();
+	await persistStore(storedReservations.slice(-dates.length));
 	selectedDates.clear();
 	selectedDateLabel.textContent = t('selectDays');
 	bookingForm.reset();
