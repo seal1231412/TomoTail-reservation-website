@@ -25,7 +25,7 @@ const languageToggle = document.getElementById('languageToggle');
 
 const appConfig = window.appConfig || {};
 const isSupabaseConfigured = Boolean(appConfig.supabaseUrl && appConfig.supabaseAnonKey && !appConfig.supabaseUrl.includes('YOUR_PROJECT_ID'));
-const supabase = isSupabaseConfigured && window.supabase ? window.supabase.createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey) : null;
+const supabaseClient = isSupabaseConfigured && window.supabase ? window.supabase.createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey) : null;
 
 function readLocalStorage(key, fallback = []) {
 	try {
@@ -53,11 +53,11 @@ async function loadInitialStore() {
 	let fallbackUnavailable = localUnavailable;
 	let fallbackReservations = localReservations;
 
-	if (supabase) {
+	if (supabaseClient) {
 		try {
 			const [unavailableResponse, reservationsResponse] = await Promise.all([
-				supabase.from('unavailable_dates').select('date'),
-				supabase.from('reservations').select('*')
+				supabaseClient.from('unavailable_dates').select('date'),
+				supabaseClient.from('reservations').select('*')
 			]);
 
 			if (!unavailableResponse.error && Array.isArray(unavailableResponse.data)) {
@@ -83,14 +83,14 @@ async function persistStore() {
 	localStorage.setItem('harborUnavailable', JSON.stringify([...unavailableDates]));
 	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
 
-	if (supabase) {
+	if (supabaseClient) {
 		try {
-			const unavailableResponse = await supabase.from('unavailable_dates').upsert(
+			const unavailableResponse = await supabaseClient.from('unavailable_dates').upsert(
 				[...unavailableDates].map((date) => ({ date })),
 				{ onConflict: 'date' }
 			);
 			if (unavailableResponse.error) throw unavailableResponse.error;
-			const reservationsResponse = await supabase.from('reservations').upsert(
+			const reservationsResponse = await supabaseClient.from('reservations').upsert(
 				storedReservations.map((reservation) => ({
 					id: `${reservation.reservationId || reservation.reservationid || reservation.id}-${reservation.date}`,
 					reservationid: reservation.reservationId || reservation.reservationid || reservation.id,
