@@ -184,6 +184,8 @@
 		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the email used for the reservation, then choose the day to cancel.</p><label for="cancelEmail">Email address</label><input id="cancelEmail" type="email" required placeholder="you@example.com"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter email first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
 	</dialog>
 	<div class="toast" id="toast" role="status"></div>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="config.js"></script>
 	<script src="web.js"></script>
 </body>
 </html>

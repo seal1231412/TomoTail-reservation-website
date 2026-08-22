@@ -23,6 +23,75 @@ const cancelEmail = document.getElementById('cancelEmail');
 const cancelDate = document.getElementById('cancelDate');
 const languageToggle = document.getElementById('languageToggle');
 
+const appConfig = window.appConfig || {};
+const isSupabaseConfigured = Boolean(appConfig.supabaseUrl && appConfig.supabaseAnonKey && !appConfig.supabaseUrl.includes('YOUR_PROJECT_ID'));
+const supabase = isSupabaseConfigured && window.supabase ? window.supabase.createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey) : null;
+
+function readLocalStorage(key, fallback = []) {
+	try {
+		const value = JSON.parse(localStorage.getItem(key) || 'null');
+		return value ?? fallback;
+	} catch (error) {
+		return fallback;
+	}
+}
+
+async function loadInitialStore() {
+	const localUnavailable = readLocalStorage('harborUnavailable', []);
+	const localReservations = readLocalStorage('harborReservations', []);
+
+	let fallbackUnavailable = localUnavailable;
+	let fallbackReservations = localReservations;
+
+	if (supabase) {
+		try {
+			const [unavailableResponse, reservationsResponse] = await Promise.all([
+				supabase.from('unavailable_dates').select('date'),
+				supabase.from('reservations').select('*')
+			]);
+
+			if (!unavailableResponse.error && Array.isArray(unavailableResponse.data)) {
+				fallbackUnavailable = unavailableResponse.data.map((row) => row.date);
+			}
+
+			if (!reservationsResponse.error && Array.isArray(reservationsResponse.data)) {
+				fallbackReservations = reservationsResponse.data;
+			}
+		} catch (error) {
+			console.warn('Supabase read failed, falling back to browser storage.', error);
+		}
+	}
+
+	storedUnavailable = new Set(fallbackUnavailable);
+	storedReservations = fallbackReservations;
+	localStorage.setItem('harborUnavailable', JSON.stringify([...storedUnavailable]));
+	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
+	buildReservationCounts();
+}
+
+async function persistStore() {
+	localStorage.setItem('harborUnavailable', JSON.stringify([...unavailableDates]));
+	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
+
+	if (supabase) {
+		try {
+			await supabase.from('unavailable_dates').upsert(
+				[...unavailableDates].map((date) => ({ date })),
+				{ onConflict: 'date' }
+			);
+			await supabase.from('reservations').upsert(
+				storedReservations.map((reservation) => ({
+					id: reservation.reservationId || reservation.id || `${reservation.date}-${reservation.email || 'guest'}`,
+					...reservation
+				})),
+				{ onConflict: 'id' }
+			);
+		} catch (error) {
+			console.warn('Supabase write failed; browser storage remains as fallback.', error);
+		}
+	}
+}
+
 const translations = {
 		en: {
 		brandSmall: 'Reservation desk', workspace: 'WORKSPACE', calendar: 'Calendar', signedIn: 'Signed in as', garden: 'THE GARDEN ROOM', title: 'Make a reservation', subtitle: 'Choose an available day to reserve your visit.', adminLogin: 'Admin login', adminMode: 'Admin mode', available: 'Available', reserved: 'Reserved', unavailable: 'Unavailable', today: 'Today', past: 'Past', closed: 'Closed', full: 'Full', left: 'left', reserveStay: 'Reserve your stay', selectDays: 'Select connected available days', testMode: 'Test mode: skip guest details', name: 'Your name', email: 'Email address', dogs: 'How many dogs?', weight: 'Weight for each dog (kg)', dropOff: 'Drop-off time', pickUp: 'Pick-up time', chooseTime: 'Choose time', confirm: 'Confirm reservation', cancelReservation: 'Cancel a reservation', bookingNote: 'You can change your reservation by contacting the desk.', staff: 'Staff access', loginHelp: 'Sign in to manage which days can be reserved.', password: 'Password', enterPassword: 'Enter password', continue: 'Continue', demoPassword: 'Demo password:', reservationChanges: 'Reservation changes', cancelHelp: 'Enter the email used for the reservation, then choose the booking to cancel.', reservation: 'Reservation', chooseReservation: 'Choose reservation', noReservations: 'No reservations found', cancel: 'Cancel reservation', adminHelp: 'Turn editing on, then click days to cycle them open or closed.', editingHelp: 'Click days to cycle them between available and unavailable.', editAvailability: 'Edit availability', editingOn: 'Editing on', availabilityLegend: 'Availability legend', availabilityInfo: 'Grey days can be reserved. Red days are closed or already reserved.', clickEdit: 'Click-to-edit availability', quickOverview: 'Quick overview', localStorage: 'Reservations are stored locally', reset: 'Reset all reservations', nowSelected: (count) => `${count} connected day${count === 1 ? '' : 's'} selected`, chooseEnd: 'Choose a day next to your current selection.'
@@ -39,14 +108,18 @@ const selectedDates = new Set();
 let adminMode = false;
 let editingAvailability = false;
 const MAX_RESERVATIONS_PER_DAY = 5;
-const storedUnavailable = JSON.parse(localStorage.getItem('harborUnavailable') || '[]');
-const storedReservations = JSON.parse(localStorage.getItem('harborReservations') || '[]');
-const unavailableDates = new Set(storedUnavailable);
+let storedUnavailable = [];
+let storedReservations = [];
+const unavailableDates = new Set();
 const reservationCounts = new Map();
-storedReservations.forEach((reservation) => {
-	const dogsInReservation = dogsIn(reservation);
-	reservationCounts.set(reservation.date, (reservationCounts.get(reservation.date) || 0) + dogsInReservation);
-});
+
+function buildReservationCounts() {
+	reservationCounts.clear();
+	storedReservations.forEach((reservation) => {
+		const dogsInReservation = dogsIn(reservation);
+		reservationCounts.set(reservation.date, (reservationCounts.get(reservation.date) || 0) + dogsInReservation);
+	});
+}
 
 function dogsIn(reservation) {
 	return Array.isArray(reservation.dogs) ? reservation.dogs.length : Math.max(1, Number(reservation.dogCount) || 1);
@@ -289,11 +362,14 @@ editAvailability.addEventListener('click', () => {
 	editAvailability.textContent = editingAvailability ? t('editingOn') : t('editAvailability');
 	updateAdminPanel();
 });
-document.getElementById('resetReservations').addEventListener('click', () => {
+document.getElementById('resetReservations').addEventListener('click', async () => {
 	if (!confirm('Reset all reservations? This cannot be undone.')) return;
-	storedReservations.length = 0;
+	storedReservations = [];
+	unavailableDates.clear();
 	reservationCounts.clear();
 	localStorage.removeItem('harborReservations');
+	localStorage.removeItem('harborUnavailable');
+	await persistStore();
 	renderCalendar();
 	showToast('All reservations reset');
 });
@@ -320,7 +396,7 @@ function updateCancellationDates() {
 	cancelDate.disabled = matchingReservations.size === 0;
 }
 cancelEmail.addEventListener('input', updateCancellationDates);
-cancelForm.addEventListener('submit', (event) => {
+cancelForm.addEventListener('submit', async (event) => {
 	event.preventDefault();
 	const matchingIndexes = [];
 	storedReservations.forEach((reservation, index) => {
@@ -333,7 +409,7 @@ cancelForm.addEventListener('submit', (event) => {
 		const remainingDogs = (reservationCounts.get(reservation.date) || 0) - dogsIn(reservation);
 		if (remainingDogs > 0) reservationCounts.set(reservation.date, remainingDogs); else reservationCounts.delete(reservation.date);
 	});
-	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
+	await persistStore();
 	cancelForm.reset();
 	updateCancellationDates();
 	cancelDialog.close();
@@ -355,15 +431,18 @@ testMode.addEventListener('change', () => {
 	}
 });
 dogCount.addEventListener('input', renderDogWeights);
-bookingForm.addEventListener('submit', (event) => {
+bookingForm.addEventListener('submit', async (event) => {
 	event.preventDefault();
 	if (!selectedDates.size) return showToast('Choose at least one available day first.');
 	const dates = [...selectedDates];
 	const weights = [...dogWeights.querySelectorAll('input')].map((input) => Number(input.value));
 	if (weights.some((weight) => !weight || weight <= 0)) return showToast('Enter a weight for every dog.');
 	const reservationDetails = { reservationId: `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: guestName.value, email: guestEmail.value, dogCount: weights.length, dogs: weights.map((weight, index) => ({ number: index + 1, weight })), dropOff: dropOff.value, pickUp: pickUp.value };
-	dates.forEach((date) => { storedReservations.push({ date, ...reservationDetails }); reservationCounts.set(date, (reservationCounts.get(date) || 0) + weights.length); });
-	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
+	dates.forEach((date) => {
+		storedReservations.push({ date, ...reservationDetails });
+		reservationCounts.set(date, (reservationCounts.get(date) || 0) + weights.length);
+	});
+	await persistStore();
 	selectedDates.clear();
 	selectedDateLabel.textContent = t('selectDays');
 	bookingForm.reset();
@@ -377,4 +456,8 @@ languageToggle.addEventListener('click', () => {
 	localStorage.setItem('harborLanguage', currentLanguage);
 	applyLanguage();
 });
-applyLanguage();
+
+loadInitialStore().then(() => {
+	storedUnavailable.forEach((date) => unavailableDates.add(date));
+	applyLanguage();
+});
