@@ -86,8 +86,10 @@
 		.form-row.inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 		label { display: block; margin-bottom: 6px; color: #64706f; font-size: 12px; font-weight: 700; }
 		input { width: 100%; border: 1px solid #d8dfdd; border-radius: 4px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; }
+		textarea { width: 100%; min-height: 86px; resize: vertical; border: 1px solid #d8dfdd; border-radius: 4px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; font: inherit; }
 		select { width: 100%; border: 1px solid #d8dfdd; border-radius: 4px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; }
 		input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8,127,119,.1); }
+		textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8,127,119,.1); }
 		select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8,127,119,.1); }
 		input[type="checkbox"] { width: auto; accent-color: var(--teal); }
 		.check-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 18px; color: var(--muted); font-size: 12px; }
@@ -172,10 +174,11 @@
 					<h2>Reserve your stay</h2><p class="selected-date" id="selectedDate">Select connected available days</p>
 					<div class="check-row"><input id="testMode" type="checkbox"><label for="testMode">Test mode: skip guest details</label></div>
 					<div class="form-row"><label for="guestName">Your name</label><input id="guestName" required placeholder="e.g. Alex Morgan"></div>
-					<div class="form-row"><label for="guestEmail">Email address</label><input id="guestEmail" type="email" required placeholder="you@example.com"></div>
+					<div class="form-row"><label for="guestPhone">Phone number</label><input id="guestPhone" type="tel" required placeholder="e.g. +66 81 234 5678"></div>
 					<div class="form-row"><label for="dogCount">How many dogs?</label><input id="dogCount" type="number" min="0" max="10" value="0" required></div>
 					<div class="form-row"><label>Weight for each dog (kg)</label><div class="weights" id="dogWeights"></div></div>
 					<div class="form-row inline"><div><label for="dropOff">Drop-off time</label><select id="dropOff" required></select></div><div><label for="pickUp">Pick-up time</label><select id="pickUp" required></select></div></div>
+					<div class="form-row"><label for="reservationNotes">Extra information</label><textarea id="reservationNotes" placeholder="Anything we should know?"></textarea></div>
 					<button class="primary-btn" type="submit">Confirm reservation</button><button class="secondary-btn" id="cancelButton" type="button">Cancel a reservation</button><p class="booking-note">You can change your reservation by contacting the desk.</p>
 				</form>
 				<section class="admin-view" id="adminView">
@@ -190,7 +193,7 @@
 		<form id="loginForm"><button class="dialog-close icon-btn" id="closeLogin" type="button" aria-label="Close login"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Staff access</p><h2>Admin login</h2><p>Sign in to manage which days can be reserved.</p><label for="adminPassword">Password</label><input id="adminPassword" type="password" placeholder="Enter password" required><button class="primary-btn" type="submit">Continue</button><small>Demo password: <strong>admin123</strong></small></form>
 	</dialog>
 	<dialog class="cancel-dialog" id="cancelDialog">
-		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the email used for the reservation, then choose the day to cancel.</p><label for="cancelEmail">Email address</label><input id="cancelEmail" type="email" required placeholder="you@example.com"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter email first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
+		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the phone number used for the reservation, then choose the day to cancel.</p><label for="cancelPhone">Phone number</label><input id="cancelPhone" type="tel" required placeholder="e.g. +66 81 234 5678"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter phone number first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
 	</dialog>
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

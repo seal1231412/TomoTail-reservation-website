@@ -4,7 +4,8 @@ const selectedDateLabel = document.getElementById('selectedDate');
 const bookingForm = document.getElementById('bookingForm');
 const testMode = document.getElementById('testMode');
 const guestName = document.getElementById('guestName');
-const guestEmail = document.getElementById('guestEmail');
+const guestPhone = document.getElementById('guestPhone');
+const reservationNotes = document.getElementById('reservationNotes');
 const dogCount = document.getElementById('dogCount');
 const dogWeights = document.getElementById('dogWeights');
 const dropOff = document.getElementById('dropOff');
@@ -20,7 +21,7 @@ const loginForm = document.getElementById('loginForm');
 const workspace = document.querySelector('.workspace');
 const cancelDialog = document.getElementById('cancelDialog');
 const cancelForm = document.getElementById('cancelForm');
-const cancelEmail = document.getElementById('cancelEmail');
+const cancelPhone = document.getElementById('cancelPhone');
 const cancelDate = document.getElementById('cancelDate');
 const languageToggle = document.getElementById('languageToggle');
 
@@ -43,7 +44,9 @@ function normalizeReservation(reservation) {
 		reservationId: reservation.reservationId || reservation.reservationid || reservation.id,
 		dogCount: reservation.dogCount ?? reservation.dogcount ?? 0,
 		dropOff: reservation.dropOff || reservation.dropoff || '',
-		pickUp: reservation.pickUp || reservation.pickup || ''
+		pickUp: reservation.pickUp || reservation.pickup || '',
+		phone: reservation.phone || '',
+		notes: reservation.notes || ''
 	};
 }
 
@@ -101,7 +104,8 @@ async function persistStore() {
 					reservationid: reservation.reservationId || reservation.reservationid || reservation.id,
 					date: reservation.date,
 					name: reservation.name || '',
-					email: reservation.email || '',
+					phone: reservation.phone || '',
+					notes: reservation.notes || '',
 					dogcount: Number(reservation.dogCount ?? reservation.dogcount) || 0,
 					dogs: Array.isArray(reservation.dogs) ? reservation.dogs : [],
 					dropoff: reservation.dropOff || reservation.dropoff || '',
@@ -120,10 +124,10 @@ async function persistStore() {
 
 const translations = {
 		en: {
-		brandSmall: 'Reservation desk', workspace: 'WORKSPACE', calendar: 'Calendar', signedIn: 'Signed in as', garden: 'THE GARDEN ROOM', title: 'Make a reservation', subtitle: 'Choose an available day to reserve your visit.', adminLogin: 'Admin login', adminMode: 'Admin mode', available: 'Available', reserved: 'Reserved', unavailable: 'Unavailable', today: 'Today', past: 'Past', closed: 'Closed', full: 'Full', left: 'left', reserveStay: 'Reserve your stay', selectDays: 'Select connected available days', testMode: 'Test mode: skip guest details', name: 'Your name', email: 'Email address', dogs: 'How many dogs?', weight: 'Weight for each dog (kg)', dropOff: 'Drop-off time', pickUp: 'Pick-up time', chooseTime: 'Choose time', confirm: 'Confirm reservation', cancelReservation: 'Cancel a reservation', bookingNote: 'You can change your reservation by contacting the desk.', staff: 'Staff access', loginHelp: 'Sign in to manage which days can be reserved.', password: 'Password', enterPassword: 'Enter password', continue: 'Continue', demoPassword: 'Demo password:', reservationChanges: 'Reservation changes', cancelHelp: 'Enter the email used for the reservation, then choose the booking to cancel.', reservation: 'Reservation', chooseReservation: 'Choose reservation', noReservations: 'No reservations found', cancel: 'Cancel reservation', adminHelp: 'Turn editing on, then click days to cycle them open or closed.', editingHelp: 'Click days to cycle them between available and unavailable.', editAvailability: 'Edit availability', editingOn: 'Editing on', availabilityLegend: 'Availability legend', availabilityInfo: 'Grey days can be reserved. Red days are closed or already reserved.', clickEdit: 'Click-to-edit availability', quickOverview: 'Quick overview', localStorage: 'Reservations are stored locally', reset: 'Reset all reservations', nowSelected: (count) => `${count} connected day${count === 1 ? '' : 's'} selected`, chooseEnd: 'Choose a day next to your current selection.'
+		brandSmall: 'Reservation desk', workspace: 'WORKSPACE', calendar: 'Calendar', signedIn: 'Signed in as', garden: 'THE GARDEN ROOM', title: 'Make a reservation', subtitle: 'Choose an available day to reserve your visit.', adminLogin: 'Admin login', adminMode: 'Admin mode', available: 'Available', reserved: 'Reserved', unavailable: 'Unavailable', today: 'Today', past: 'Past', closed: 'Closed', full: 'Full', left: 'left', reserveStay: 'Reserve your stay', selectDays: 'Select connected available days', testMode: 'Test mode: skip guest details', name: 'Your name', phone: 'Phone number', notes: 'Extra information', dogs: 'How many dogs?', weight: 'Weight for each dog (kg)', dropOff: 'Drop-off time', pickUp: 'Pick-up time', chooseTime: 'Choose time', confirm: 'Confirm reservation', cancelReservation: 'Cancel a reservation', bookingNote: 'You can change your reservation by contacting the desk.', staff: 'Staff access', loginHelp: 'Sign in to manage which days can be reserved.', password: 'Password', enterPassword: 'Enter password', continue: 'Continue', demoPassword: 'Demo password:', reservationChanges: 'Reservation changes', cancelHelp: 'Enter the phone number used for the reservation, then choose the booking to cancel.', reservation: 'Reservation', chooseReservation: 'Choose reservation', noReservations: 'No reservations found', cancel: 'Cancel reservation', adminHelp: 'Turn editing on, then click days to cycle them open or closed.', editingHelp: 'Click days to cycle them between available and unavailable.', editAvailability: 'Edit availability', editingOn: 'Editing on', availabilityLegend: 'Availability legend', availabilityInfo: 'Grey days can be reserved. Red days are closed or already reserved.', clickEdit: 'Click-to-edit availability', quickOverview: 'Quick overview', localStorage: 'Reservations are stored locally', reset: 'Reset all reservations', nowSelected: (count) => `${count} connected day${count === 1 ? '' : 's'} selected`, chooseEnd: 'Choose a day next to your current selection.'
 	},
 		th: {
-		brandSmall: 'โต๊ะจองบริการ', workspace: 'พื้นที่ทำงาน', calendar: 'ปฏิทิน', signedIn: 'เข้าสู่ระบบในชื่อ', garden: 'ห้องสวน', title: 'จองเข้าพัก', subtitle: 'เลือกวันที่ว่างสำหรับการเข้าพักของคุณ', adminLogin: 'เข้าสู่ระบบผู้ดูแล', adminMode: 'โหมดผู้ดูแล', available: 'ว่าง', reserved: 'มีการจอง', unavailable: 'ไม่ว่าง', today: 'วันนี้', past: 'ผ่านไปแล้ว', closed: 'ปิด', full: 'เต็ม', left: 'ที่ว่าง', reserveStay: 'จองเข้าพัก', selectDays: 'เลือกวันที่ว่างที่ต่อเนื่องกัน', testMode: 'โหมดทดสอบ: ข้ามข้อมูลผู้จอง', name: 'ชื่อผู้จอง', email: 'อีเมล', dogs: 'มีสุนัขกี่ตัว?', weight: 'น้ำหนักสุนัขแต่ละตัว (กก.)', dropOff: 'เวลาส่งสุนัข', pickUp: 'เวลารับสุนัข', chooseTime: 'เลือกเวลา', confirm: 'ยืนยันการจอง', cancelReservation: 'ยกเลิกการจอง', bookingNote: 'หากต้องการเปลี่ยนการจอง กรุณาติดต่อเจ้าหน้าที่', staff: 'สำหรับเจ้าหน้าที่', loginHelp: 'เข้าสู่ระบบเพื่อจัดการวันที่เปิดให้จอง', password: 'รหัสผ่าน', enterPassword: 'กรอกรหัสผ่าน', continue: 'ดำเนินการต่อ', demoPassword: 'รหัสผ่านตัวอย่าง:', reservationChanges: 'แก้ไขการจอง', cancelHelp: 'กรอกอีเมลที่ใช้จอง แล้วเลือกการจองที่ต้องการยกเลิก', reservation: 'การจอง', chooseReservation: 'เลือกการจอง', noReservations: 'ไม่พบการจอง', cancel: 'ยกเลิกการจอง', adminHelp: 'เปิดการแก้ไข แล้วคลิกวันที่เพื่อสลับสถานะว่างหรือไม่ว่าง', editingHelp: 'คลิกวันที่เพื่อสลับระหว่างว่างและไม่ว่าง', editAvailability: 'แก้ไขวันว่าง', editingOn: 'กำลังแก้ไข', availabilityLegend: 'คำอธิบายสถานะวันว่าง', availabilityInfo: 'วันสีเทาสามารถจองได้ วันสีแดงปิดหรือมีการจองแล้ว', clickEdit: 'คลิกเพื่อแก้ไขวันว่าง', quickOverview: 'ภาพรวม', localStorage: 'ข้อมูลการจองจัดเก็บไว้ในเครื่องนี้', reset: 'รีเซ็ตการจองทั้งหมด', nowSelected: (count) => `เลือกแล้ว ${count} วันต่อเนื่อง`, chooseEnd: 'เลือกวันที่ติดกับวันที่เลือกไว้'
+		brandSmall: 'โต๊ะจองบริการ', workspace: 'พื้นที่ทำงาน', calendar: 'ปฏิทิน', signedIn: 'เข้าสู่ระบบในชื่อ', garden: 'ห้องสวน', title: 'จองเข้าพัก', subtitle: 'เลือกวันที่ว่างสำหรับการเข้าพักของคุณ', adminLogin: 'เข้าสู่ระบบผู้ดูแล', adminMode: 'โหมดผู้ดูแล', available: 'ว่าง', reserved: 'มีการจอง', unavailable: 'ไม่ว่าง', today: 'วันนี้', past: 'ผ่านไปแล้ว', closed: 'ปิด', full: 'เต็ม', left: 'ที่ว่าง', reserveStay: 'จองเข้าพัก', selectDays: 'เลือกวันที่ว่างที่ต่อเนื่องกัน', testMode: 'โหมดทดสอบ: ข้ามข้อมูลผู้จอง', name: 'ชื่อผู้จอง', phone: 'หมายเลขโทรศัพท์', notes: 'ข้อมูลเพิ่มเติม', dogs: 'มีสุนัขกี่ตัว?', weight: 'น้ำหนักสุนัขแต่ละตัว (กก.)', dropOff: 'เวลาส่งสุนัข', pickUp: 'เวลารับสุนัข', chooseTime: 'เลือกเวลา', confirm: 'ยืนยันการจอง', cancelReservation: 'ยกเลิกการจอง', bookingNote: 'หากต้องการเปลี่ยนการจอง กรุณาติดต่อเจ้าหน้าที่', staff: 'สำหรับเจ้าหน้าที่', loginHelp: 'เข้าสู่ระบบเพื่อจัดการวันที่เปิดให้จอง', password: 'รหัสผ่าน', enterPassword: 'กรอกรหัสผ่าน', continue: 'ดำเนินการต่อ', demoPassword: 'รหัสผ่านตัวอย่าง:', reservationChanges: 'แก้ไขการจอง', cancelHelp: 'กรอกหมายเลขโทรศัพท์ที่ใช้จอง แล้วเลือกการจองที่ต้องการยกเลิก', reservation: 'การจอง', chooseReservation: 'เลือกการจอง', noReservations: 'ไม่พบการจอง', cancel: 'ยกเลิกการจอง', adminHelp: 'เปิดการแก้ไข แล้วคลิกวันที่เพื่อสลับสถานะว่างหรือไม่ว่าง', editingHelp: 'คลิกวันที่เพื่อสลับระหว่างว่างและไม่ว่าง', editAvailability: 'แก้ไขวันว่าง', editingOn: 'กำลังแก้ไข', availabilityLegend: 'คำอธิบายสถานะวันว่าง', availabilityInfo: 'วันสีเทาสามารถจองได้ วันสีแดงปิดหรือมีการจองแล้ว', clickEdit: 'คลิกเพื่อแก้ไขวันว่าง', quickOverview: 'ภาพรวม', localStorage: 'ข้อมูลการจองจัดเก็บไว้ในเครื่องนี้', reset: 'รีเซ็ตการจองทั้งหมด', nowSelected: (count) => `เลือกแล้ว ${count} วันต่อเนื่อง`, chooseEnd: 'เลือกวันที่ติดกับวันที่เลือกไว้'
 	}
 };
 let currentLanguage = localStorage.getItem('harborLanguage') || 'en';
@@ -155,7 +159,7 @@ function renderReservationList() {
 	if (!reservationItems) return;
 	const groupedReservations = new Map();
 	storedReservations.map(normalizeReservation).forEach((reservation) => {
-		const reservationId = reservation.reservationId || `legacy-${reservation.date}-${reservation.email || 'guest'}`;
+		const reservationId = reservation.reservationId || `legacy-${reservation.date}-${reservation.phone || 'guest'}`;
 		if (!groupedReservations.has(reservationId)) groupedReservations.set(reservationId, []);
 		groupedReservations.get(reservationId).push(reservation);
 	});
@@ -168,7 +172,7 @@ function renderReservationList() {
 		const first = entries[0];
 		const dates = entries.map((entry) => formatDate(entry.date)).join(', ');
 		const weights = Array.isArray(first.dogs) && first.dogs.length ? first.dogs.map((dog) => `${dog.weight} kg`).join(', ') : 'Not provided';
-		return `<article class="reservation-item"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} (${escapeHTML(first.email || 'No email')})</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></article>`;
+		return `<article class="reservation-item"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} | <b>Phone:</b> ${escapeHTML(first.phone || 'Not provided')}</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p><b>Notes:</b> ${escapeHTML(first.notes || 'None')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></article>`;
 	}).join('');
 }
 
@@ -231,11 +235,12 @@ function applyLanguage() {
 	document.querySelectorAll('.legend span').forEach((item, index) => { item.lastChild.textContent = ` ${legendLabels[index]}`; });
 	document.querySelector('.booking-panel h2').textContent = t('reserveStay');
 	document.querySelector('.check-row label').textContent = t('testMode');
-	const labels = { guestName: t('name'), guestEmail: t('email'), dogCount: t('dogs'), dropOff: t('dropOff'), pickUp: t('pickUp') };
+	const labels = { guestName: t('name'), guestPhone: t('phone'), dogCount: t('dogs'), dropOff: t('dropOff'), pickUp: t('pickUp') };
 	Object.entries(labels).forEach(([id, label]) => { document.querySelector(`label[for="${id}"]`).textContent = label; });
 	document.querySelector('.booking-panel .form-row:nth-of-type(4) label').textContent = t('weight');
 	guestName.placeholder = currentLanguage === 'th' ? 'เช่น อเล็กซ์ มอร์แกน' : 'e.g. Alex Morgan';
-	guestEmail.placeholder = currentLanguage === 'th' ? 'you@example.com' : 'you@example.com';
+	guestPhone.placeholder = currentLanguage === 'th' ? 'เช่น 081 234 5678' : 'e.g. +1 555 123 4567';
+	reservationNotes.placeholder = currentLanguage === 'th' ? 'ข้อมูลเพิ่มเติมที่ควรทราบ' : 'Anything we should know?';
 	document.querySelector('#bookingForm .primary-btn').textContent = t('confirm');
 	document.getElementById('cancelButton').textContent = t('cancelReservation');
 	document.querySelector('.booking-note').textContent = t('bookingNote');
@@ -256,9 +261,9 @@ function applyLanguage() {
 	document.querySelector('.cancel-dialog .eyebrow').textContent = t('reservationChanges');
 	document.querySelector('.cancel-dialog h2').textContent = t('cancelReservation');
 	document.querySelector('.cancel-dialog p:not(.eyebrow)').textContent = t('cancelHelp');
-	document.querySelector('.cancel-dialog label[for="cancelEmail"]').textContent = t('email');
+	document.querySelector('.cancel-dialog label[for="cancelPhone"]').textContent = t('phone');
 	document.querySelector('.cancel-dialog label[for="cancelDate"]').textContent = t('reservation');
-	document.getElementById('cancelEmail').placeholder = currentLanguage === 'th' ? 'you@example.com' : 'you@example.com';
+	document.getElementById('cancelPhone').placeholder = currentLanguage === 'th' ? 'เช่น 081 234 5678' : 'e.g. +1 555 123 4567';
 	document.querySelector('.cancel-dialog .primary-btn').textContent = t('cancel');
 	populateTimeOptions();
 	selectedDateLabel.textContent = selectedDates.size ? t('nowSelected')(selectedDates.size) : t('selectDays');
@@ -427,12 +432,12 @@ document.getElementById('resetReservations').addEventListener('click', async () 
 });
 document.getElementById('cancelButton').addEventListener('click', () => {
 	cancelDialog.showModal();
-	cancelEmail.focus();
+	cancelPhone.focus();
 });
 function updateCancellationDates() {
-	const email = cancelEmail.value.trim().toLowerCase();
+	const phone = cancelPhone.value.trim();
 	const matchingReservations = new Map();
-	storedReservations.filter((reservation) => reservation.email?.toLowerCase() === email).forEach((reservation) => {
+	storedReservations.filter((reservation) => reservation.phone?.trim() === phone).forEach((reservation) => {
 		const reservationId = reservation.reservationId || `legacy-${reservation.date}`;
 		if (!matchingReservations.has(reservationId)) matchingReservations.set(reservationId, []);
 		matchingReservations.get(reservationId).push(reservation);
@@ -447,13 +452,13 @@ function updateCancellationDates() {
 	});
 	cancelDate.disabled = matchingReservations.size === 0;
 }
-cancelEmail.addEventListener('input', updateCancellationDates);
+cancelPhone.addEventListener('input', updateCancellationDates);
 cancelForm.addEventListener('submit', async (event) => {
 	event.preventDefault();
 	const matchingIndexes = [];
 	storedReservations.forEach((reservation, index) => {
 		const reservationId = reservation.reservationId || `legacy-${reservation.date}`;
-		if (reservationId === cancelDate.value && reservation.email?.toLowerCase() === cancelEmail.value.trim().toLowerCase()) matchingIndexes.push(index);
+		if (reservationId === cancelDate.value && reservation.phone?.trim() === cancelPhone.value.trim()) matchingIndexes.push(index);
 	});
 	if (!matchingIndexes.length) return showToast('No matching reservation found.');
 	matchingIndexes.reverse().forEach((index) => {
@@ -471,15 +476,15 @@ cancelForm.addEventListener('submit', async (event) => {
 document.getElementById('closeCancel').addEventListener('click', () => cancelDialog.close());
 testMode.addEventListener('change', () => {
 	guestName.required = !testMode.checked;
-	guestEmail.required = !testMode.checked;
+	guestPhone.required = !testMode.checked;
 	guestName.disabled = testMode.checked;
-	guestEmail.disabled = testMode.checked;
+	guestPhone.disabled = testMode.checked;
 	if (testMode.checked) {
 		guestName.value = 'Test reservation';
-		guestEmail.value = 'test@example.com';
+		guestPhone.value = '0000000000';
 	} else {
 		guestName.value = '';
-		guestEmail.value = '';
+		guestPhone.value = '';
 	}
 });
 dogCount.addEventListener('input', renderDogWeights);
@@ -489,7 +494,7 @@ bookingForm.addEventListener('submit', async (event) => {
 	const dates = [...selectedDates];
 	const weights = [...dogWeights.querySelectorAll('input')].map((input) => Number(input.value));
 	if (weights.some((weight) => !weight || weight <= 0)) return showToast('Enter a weight for every dog.');
-	const reservationDetails = { reservationId: `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: guestName.value, email: guestEmail.value, dogCount: weights.length, dogs: weights.map((weight, index) => ({ number: index + 1, weight })), dropOff: dropOff.value, pickUp: pickUp.value };
+	const reservationDetails = { reservationId: `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: guestName.value, phone: guestPhone.value, notes: reservationNotes.value.trim(), dogCount: weights.length, dogs: weights.map((weight, index) => ({ number: index + 1, weight })), dropOff: dropOff.value, pickUp: pickUp.value };
 	dates.forEach((date) => {
 		storedReservations.push({ date, ...reservationDetails });
 		reservationCounts.set(date, (reservationCounts.get(date) || 0) + weights.length);
