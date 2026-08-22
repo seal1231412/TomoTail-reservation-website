@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Harbor House | Reservations</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--ink: #1f2933;
+			--muted: #77818b;
+			--line: #e4e8e7;
+			--paper: #fcfbf8;
+			--white: #ffffff;
+			--teal: #087f77;
+			--teal-dark: #05645f;
+			--mint: #dff1ed;
+			--coral: #d95f54;
+			--coral-pale: #f9e4df;
+			--shadow: 0 18px 60px rgba(37, 58, 56, .08);
+		}
+		* { box-sizing: border-box; }
+		body { margin: 0; color: var(--ink); background: var(--paper); font: 15px/1.5 'DM Sans', sans-serif; }
+		button, input { font: inherit; }
+		button { cursor: pointer; }
+		.app-shell { min-height: 100vh; display: grid; grid-template-columns: 228px 1fr; }
+		.sidebar { color: #eaf7f4; background: #113f3c; padding: 28px 18px; display: flex; flex-direction: column; }
+		.brand { padding: 0 14px 42px; color: #fff; font: 800 20px 'Manrope', sans-serif; letter-spacing: -.5px; }
+		.brand small { display: block; margin-top: 2px; color: #94c9c1; font: 500 11px 'DM Sans', sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+		.nav-label { padding: 0 14px 9px; color: #75a9a2; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+		.nav-item { width: 100%; border: 0; border-radius: 7px; padding: 12px 14px; display: flex; align-items: center; gap: 11px; color: #c7e4df; background: transparent; text-align: left; }
+		.nav-item i { width: 17px; font-size: 17px; }
+		.nav-item.active, .nav-item:hover { color: white; background: #1d625d; }
+		.sidebar-foot { margin-top: auto; padding: 20px 14px 4px; border-top: 1px solid rgba(255,255,255,.13); color: #a9d2cc; font-size: 12px; }
+		.admin-chip { display: flex; align-items: center; gap: 9px; margin-top: 11px; color: white; font-weight: 600; }
+		.avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #174844; background: #b8e2da; font-size: 11px; font-weight: 700; }
+		main { min-width: 0; padding: 36px clamp(24px, 5vw, 76px) 60px; }
+		.topbar { max-width: 1160px; margin: auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+		.eyebrow { margin: 0 0 7px; color: var(--teal); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+		h1 { margin: 0; font: 800 clamp(27px, 3vw, 38px)/1.1 'Manrope', sans-serif; letter-spacing: -1.4px; }
+		.subtitle { margin: 10px 0 0; color: var(--muted); }
+		.admin-btn, .primary-btn { border: 0; border-radius: 5px; padding: 11px 16px; color: white; background: var(--teal); font-weight: 700; }
+		.admin-btn:hover, .primary-btn:hover { background: var(--teal-dark); }
+		.admin-btn i { margin-right: 7px; }
+		.language-btn { border: 1px solid var(--line); border-radius: 5px; padding: 10px 13px; color: var(--teal); background: #fff; font-size: 12px; font-weight: 700; }
+		.language-btn:hover { border-color: var(--teal); background: var(--mint); }
+		.topbar-actions { display: flex; align-items: center; gap: 9px; }
+		.workspace { max-width: 1160px; margin: 34px auto 0; display: grid; grid-template-columns: minmax(0, 1fr) 315px; gap: 24px; }
+		.calendar-panel, .booking-panel { border: 1px solid var(--line); background: var(--white); box-shadow: var(--shadow); }
+		.calendar-panel { padding: clamp(20px, 3vw, 30px); }
+		.calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
+		.month-title { margin: 0; font: 700 20px 'Manrope', sans-serif; letter-spacing: -.4px; }
+		.month-actions { display: flex; gap: 7px; }
+		.icon-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 5px; display: grid; place-items: center; color: var(--ink); background: #fff; }
+		.icon-btn:hover { color: var(--teal); border-color: var(--teal); }
+		.weekdays, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+		.weekday { padding-bottom: 8px; color: #9aa39f; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-align: center; text-transform: uppercase; }
+		.day { min-height: 75px; border: 1px solid var(--line); border-radius: 4px; padding: 9px; position: relative; color: #4e595f; background: #f3f4f2; text-align: left; transition: transform .15s, border-color .15s; }
+		.day:not(.empty):hover { z-index: 1; transform: translateY(-2px); border-color: var(--teal); }
+		.day.empty { border-color: transparent; background: transparent; }
+		.day.booked { border-color: #f1c7c0; color: #a54d45; background: var(--coral-pale); }
+		.day.busy { border-color: #eeb39e; color: #9a5139; background: #f8ddd1; }
+		.day.reserved { border-color: #e5c684; color: #87652c; background: #f8edcf; }
+		.day.full { border-color: #df8e85; color: #913b35; background: #f3c4bd; }
+		.day.past { border-color: #e1e4e2; color: #a4aba7; background: #e9ecea; }
+		.day.today { outline: 2px solid var(--teal); outline-offset: -2px; }
+		.day.selected { color: white; background: var(--teal); border-color: var(--teal); }
+		.day.selected .day-status { color: #c8ebe5; }
+		.day-number { font-weight: 700; }
+		.day-status { position: absolute; bottom: 7px; left: 9px; color: #8b9691; font-size: 10px; white-space: nowrap; }
+		.booked .day-status { color: #ca776e; }
+		.reserved .day-status { color: #a27b37; }
+		.past .day-status { color: #9da6a1; }
+		.selected .day-status { color: #c8ebe5; }
+		.legend { display: flex; gap: 18px; margin-top: 25px; padding-top: 19px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+		.legend span { display: flex; align-items: center; gap: 7px; }
+		.swatch { width: 12px; height: 12px; border: 1px solid var(--line); border-radius: 2px; background: #f3f4f2; }
+		.swatch.reserved { border-color: #e5c684; background: #f8edcf; }
+		.swatch.red { border-color: #f1c7c0; background: var(--coral-pale); }
+		.booking-panel { align-self: start; padding: 25px; }
+		.booking-panel h2 { margin: 0; font: 700 18px 'Manrope', sans-serif; }
+		.selected-date { margin: 6px 0 24px; color: var(--teal); font-weight: 700; }
+		.form-row { margin-bottom: 15px; }
+		.form-row.inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+		label { display: block; margin-bottom: 6px; color: #64706f; font-size: 12px; font-weight: 700; }
+		input { width: 100%; border: 1px solid #d8dfdd; border-radius: 4px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; }
+		select { width: 100%; border: 1px solid #d8dfdd; border-radius: 4px; padding: 11px 12px; color: var(--ink); background: #fff; outline: none; }
+		input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8,127,119,.1); }
+		select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8,127,119,.1); }
+		input[type="checkbox"] { width: auto; accent-color: var(--teal); }
+		.check-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 18px; color: var(--muted); font-size: 12px; }
+		.check-row label { margin: 0; color: var(--muted); font-size: 12px; font-weight: 500; }
+		.weights { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+		.weights input { min-width: 0; }
+		.primary-btn { width: 100%; margin-top: 4px; }
+		.secondary-btn { width: 100%; margin-top: 10px; border: 1px solid var(--line); border-radius: 5px; padding: 10px 16px; color: var(--ink); background: #fff; font-weight: 700; }
+		.secondary-btn:hover { border-color: var(--teal); color: var(--teal); }
+		.booking-note { margin: 16px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
+		.admin-view { display: none; grid-column: 2; align-self: start; }
+		.workspace.admin-active .booking-panel { display: none; }
+		.workspace.admin-active .admin-view { display: block; }
+		.admin-banner { padding: 19px 22px; border-left: 4px solid var(--teal); background: var(--mint); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+		.admin-banner strong { display: block; font: 700 16px 'Manrope', sans-serif; }
+		.admin-banner span { color: #527b76; font-size: 12px; }
+		.admin-actions { display: flex; align-items: center; gap: 10px; }
+		.edit-toggle { border: 1px solid var(--teal); border-radius: 5px; padding: 9px 13px; color: var(--teal); background: #fff; font-size: 12px; font-weight: 700; }
+		.edit-toggle.active { color: #fff; background: var(--teal); }
+		.admin-tools { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+		.tool-card { padding: 22px; border: 1px solid var(--line); background: #fff; }
+		.tool-card h3 { margin: 0 0 5px; font: 700 15px 'Manrope', sans-serif; }
+		.tool-card p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+		.availability-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--line); color: #52605e; font-size: 13px; }
+		.switch { width: 40px; height: 23px; border: 0; border-radius: 20px; padding: 3px; background: #cfd6d3; }
+		.switch::after { content: ''; display: block; width: 17px; height: 17px; border-radius: 50%; background: white; transition: transform .2s; }
+		.switch.on { background: var(--teal); }
+		.switch.on::after { transform: translateX(17px); }
+		.toast { position: fixed; right: 24px; bottom: 24px; padding: 13px 17px; border-radius: 5px; color: #fff; background: #183f3c; box-shadow: var(--shadow); opacity: 0; transform: translateY(10px); pointer-events: none; transition: .2s; }
+		.toast.show { opacity: 1; transform: translateY(0); }
+		.login-dialog { width: min(380px, calc(100% - 30px)); border: 0; padding: 0; box-shadow: 0 25px 90px rgba(22,48,46,.25); }
+		.login-dialog::backdrop { background: rgba(17,63,60,.38); }
+		.login-dialog form { position: relative; padding: 30px; }
+		.login-dialog h2 { margin: 0 0 5px; font: 700 22px 'Manrope', sans-serif; }
+		.login-dialog p:not(.eyebrow) { margin: 0 0 22px; color: var(--muted); font-size: 13px; }
+		.login-dialog small { display: block; margin-top: 13px; color: var(--muted); font-size: 11px; text-align: center; }
+		.dialog-close { position: absolute; top: 20px; right: 20px; font-size: 20px; }
+		.cancel-dialog { width: min(380px, calc(100% - 30px)); border: 0; padding: 0; box-shadow: 0 25px 90px rgba(22,48,46,.25); }
+		.cancel-dialog::backdrop { background: rgba(17,63,60,.38); }
+		.cancel-dialog form { position: relative; padding: 30px; }
+		.cancel-dialog h2 { margin: 0 0 5px; font: 700 22px 'Manrope', sans-serif; }
+		.cancel-dialog p:not(.eyebrow) { margin: 0 0 22px; color: var(--muted); font-size: 13px; }
+		.cancel-dialog select { margin-bottom: 15px; }
+		.reset-btn { border: 1px solid #e2a39b; border-radius: 5px; padding: 9px 13px; color: #a74d44; background: #fff; font-size: 12px; font-weight: 700; }
+		.reset-btn:hover { color: #fff; background: var(--coral); }
+		@media (max-width: 850px) { .app-shell { grid-template-columns: 1fr; } .sidebar { padding: 16px 18px; flex-direction: row; align-items: center; gap: 15px; } .brand { padding: 0; } .brand small, .nav-label, .sidebar-foot { display: none; } .nav { margin-left: auto; display: flex; } .nav-item { width: auto; padding: 9px; } .nav-item span { display: none; } main { padding: 27px 18px 45px; } .workspace { grid-template-columns: 1fr; } .admin-view { grid-column: 1; } }
+		@media (max-width: 520px) { .topbar { display: block; } .admin-btn { margin-top: 20px; } .day { min-height: 64px; padding: 7px 5px; } .day-status { left: 5px; bottom: 5px; font-size: 9px; } .weekdays, .days { gap: 4px; } .legend { gap: 9px; flex-wrap: wrap; } .admin-tools { grid-template-columns: 1fr; } .admin-banner { align-items: flex-start; } .admin-actions { flex-shrink: 0; } }
+		@media (max-width: 520px) { .form-row.inline { grid-template-columns: 1fr 1fr; gap: 8px; } .weights { grid-template-columns: 1fr 1fr; } }
+	</style>
+</head>
+<body>
+	<div class="app-shell">
+		<aside class="sidebar">
+			<div class="brand">Harbor House<small>Reservation desk</small></div>
+			<nav class="nav" aria-label="Main navigation">
+				<div class="nav-label">Workspace</div>
+				<button class="nav-item active" type="button"><i class="icon-calendar-days"></i><span>Calendar</span></button>
+			</nav>
+			<div class="sidebar-foot">Signed in as<div class="admin-chip"><span class="avatar">JD</span> Jordan Davis</div></div>
+		</aside>
+		<main>
+			<header class="topbar">
+				<div><p class="eyebrow">The garden room</p><h1>Make a reservation</h1><p class="subtitle">Choose an available day to reserve your visit.</p></div>
+				<div class="topbar-actions"><button class="language-btn" id="languageToggle" type="button">ไทย</button><button class="admin-btn" id="adminButton" type="button"><i class="icon-lock-keyhole"></i> Admin login</button></div>
+			</header>
+			<section class="workspace" aria-label="Reservation calendar">
+				<div class="calendar-panel">
+					<div class="calendar-head"><h2 class="month-title" id="monthTitle"></h2><div class="month-actions"><button class="icon-btn" id="previousMonth" type="button" aria-label="Previous month"><i class="icon-chevron-left"></i></button><button class="icon-btn" id="nextMonth" type="button" aria-label="Next month"><i class="icon-chevron-right"></i></button></div></div>
+					<div class="weekdays"><div class="weekday">Sun</div><div class="weekday">Mon</div><div class="weekday">Tue</div><div class="weekday">Wed</div><div class="weekday">Thu</div><div class="weekday">Fri</div><div class="weekday">Sat</div></div>
+					<div class="days" id="calendarDays"></div>
+					<div class="legend"><span><i class="swatch"></i> Available</span><span><i class="swatch reserved"></i> Reserved</span><span><i class="swatch red"></i> Unavailable</span><span><i class="swatch" style="outline:2px solid #087f77;outline-offset:-2px"></i> Today</span></div>
+				</div>
+				<form class="booking-panel" id="bookingForm">
+					<h2>Reserve your stay</h2><p class="selected-date" id="selectedDate">Select connected available days</p>
+					<div class="check-row"><input id="testMode" type="checkbox"><label for="testMode">Test mode: skip guest details</label></div>
+					<div class="form-row"><label for="guestName">Your name</label><input id="guestName" required placeholder="e.g. Alex Morgan"></div>
+					<div class="form-row"><label for="guestEmail">Email address</label><input id="guestEmail" type="email" required placeholder="you@example.com"></div>
+					<div class="form-row"><label for="dogCount">How many dogs?</label><input id="dogCount" type="number" min="0" max="10" value="0" required></div>
+					<div class="form-row"><label>Weight for each dog (kg)</label><div class="weights" id="dogWeights"></div></div>
+					<div class="form-row inline"><div><label for="dropOff">Drop-off time</label><select id="dropOff" required></select></div><div><label for="pickUp">Pick-up time</label><select id="pickUp" required></select></div></div>
+					<button class="primary-btn" type="submit">Confirm reservation</button><button class="secondary-btn" id="cancelButton" type="button">Cancel a reservation</button><p class="booking-note">You can change your reservation by contacting the desk.</p>
+				</form>
+				<section class="admin-view" id="adminView">
+				<div class="admin-banner"><div><strong>Admin mode is on</strong><span id="adminHelp">Turn editing on, then click days to cycle them open or closed.</span></div><div class="admin-actions"><button class="edit-toggle" id="editAvailability" type="button">Edit availability</button><button class="icon-btn" id="closeAdmin" type="button" aria-label="Close admin mode"><i class="icon-x"></i></button></div></div>
+				<div class="admin-tools"><div class="tool-card"><h3>Availability legend</h3><p>Grey days can be reserved. Red days are closed or already reserved.</p><div class="availability-toggle"><span>Click-to-edit availability</span><button class="switch" id="availabilitySwitch" type="button" aria-label="Toggle availability editing"></button></div></div><div class="tool-card"><h3>Quick overview</h3><p id="overviewText"></p><div class="availability-toggle"><span>Reservations are stored locally</span><i class="icon-database" style="color:var(--teal)"></i></div><button class="reset-btn" id="resetReservations" type="button">Reset all reservations</button></div></div>
+				</section>
+			</section>
+		</main>
+	</div>
+	<dialog class="login-dialog" id="loginDialog">
+		<form id="loginForm"><button class="dialog-close icon-btn" id="closeLogin" type="button" aria-label="Close login"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Staff access</p><h2>Admin login</h2><p>Sign in to manage which days can be reserved.</p><label for="adminPassword">Password</label><input id="adminPassword" type="password" placeholder="Enter password" required><button class="primary-btn" type="submit">Continue</button><small>Demo password: <strong>admin123</strong></small></form>
+	</dialog>
+	<dialog class="cancel-dialog" id="cancelDialog">
+		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the email used for the reservation, then choose the day to cancel.</p><label for="cancelEmail">Email address</label><input id="cancelEmail" type="email" required placeholder="you@example.com"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter email first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
+	</dialog>
+	<div class="toast" id="toast" role="status"></div>
+	<script src="web.js"></script>
+</body>
+</html>
