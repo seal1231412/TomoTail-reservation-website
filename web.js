@@ -463,6 +463,12 @@ bookingForm.addEventListener('submit', async (event) => {
 		reservationCounts.set(date, (reservationCounts.get(date) || 0) + weights.length);
 	});
 	await persistStore();
+	if (supabaseClient) {
+		const { error } = await supabaseClient.functions.invoke('send-reservation-email', {
+			body: { dates, reservation: reservationDetails }
+		});
+		if (error) console.error('Reservation email failed.', error);
+	}
 	selectedDates.clear();
 	selectedDateLabel.textContent = t('selectDays');
 	bookingForm.reset();
