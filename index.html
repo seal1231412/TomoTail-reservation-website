@@ -206,7 +206,7 @@
 					<div class="form-row"><label for="guestName">Your name</label><input id="guestName" required placeholder="e.g. Alex Morgan"></div>
 					<div class="form-row"><label for="guestPhone">Phone number</label><input id="guestPhone" type="tel" required placeholder="e.g. +66 81 234 5678"></div>
 					<div class="form-row"><label for="dogCount">How many dogs?</label><input id="dogCount" type="number" min="0" max="10" value="0" required></div>
-					<div class="form-row"><label>Weight for each dog (kg)</label><div class="weights" id="dogWeights"></div></div>
+					<div class="form-row"><label id="dogWeightsLabel">Weight for each dog (kg)</label><div class="weights" id="dogWeights"></div></div>
 					<div class="form-row inline"><div><label for="dropOff">Drop-off time</label><select id="dropOff" required></select></div><div><label for="pickUp">Pick-up time</label><select id="pickUp" required></select></div></div>
 					<div class="form-row"><label for="reservationNotes">Extra information</label><textarea id="reservationNotes" placeholder="Anything we should know?"></textarea></div>
 					<button class="primary-btn" type="submit">Confirm reservation</button><button class="secondary-btn" id="cancelButton" type="button">Cancel a reservation</button><p class="booking-note">You can change your reservation by contacting the desk.</p>
@@ -232,6 +232,6 @@
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=tomotail-brand"></script>
+	<script src="web.js?v=label-fix"></script>
 </body>
 </html>

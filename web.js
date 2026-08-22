@@ -326,7 +326,7 @@ function applyLanguage() {
 	document.querySelector('.check-row label').textContent = t('testMode');
 	const labels = { guestName: t('name'), guestPhone: t('phone'), dogCount: t('dogs'), dropOff: t('dropOff'), pickUp: t('pickUp') };
 	Object.entries(labels).forEach(([id, label]) => { document.querySelector(`label[for="${id}"]`).textContent = label; });
-	document.querySelector('.booking-panel .form-row:nth-of-type(4) label').textContent = t('weight');
+	document.getElementById('dogWeightsLabel').textContent = t('weight');
 	guestName.placeholder = currentLanguage === 'th' ? 'เช่น อเล็กซ์ มอร์แกน' : 'e.g. Alex Morgan';
 	guestPhone.placeholder = currentLanguage === 'th' ? 'เช่น 081 234 5678' : 'e.g. +1 555 123 4567';
 	reservationNotes.placeholder = currentLanguage === 'th' ? 'ข้อมูลเพิ่มเติมที่ควรทราบ' : 'Anything we should know?';
