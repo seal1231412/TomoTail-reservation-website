@@ -177,7 +177,7 @@ function populateTimeOptions() {
 				const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 				const option = document.createElement('option');
 				option.value = value;
-				option.textContent = new Date(`2000-01-01T${value}`).toLocaleTimeString(currentLanguage === 'th' ? 'th-TH' : [], { hour: 'numeric', minute: '2-digit' });
+				option.textContent = new Date(`2000-01-01T${value}`).toLocaleTimeString(currentLanguage === 'th' ? 'th-TH' : undefined, { hour: 'numeric', minute: '2-digit' });
 				select.appendChild(option);
 			}
 		}
