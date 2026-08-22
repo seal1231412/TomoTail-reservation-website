@@ -471,6 +471,7 @@ bookingForm.addEventListener('submit', async (event) => {
 });
 
 renderDogWeights();
+applyLanguage();
 languageToggle.addEventListener('click', () => {
 	currentLanguage = currentLanguage === 'en' ? 'th' : 'en';
 	localStorage.setItem('harborLanguage', currentLanguage);
@@ -480,4 +481,7 @@ languageToggle.addEventListener('click', () => {
 loadInitialStore().then(() => {
 	storedUnavailable.forEach((date) => unavailableDates.add(date));
 	applyLanguage();
+	}).catch((error) => {
+		console.error('Reservation data failed to load.', error);
+		showToast('Could not load shared reservations.');
 });
