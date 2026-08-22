@@ -76,6 +76,11 @@
 		.selected .day-status { color: #c8ebe5; }
 		.legend { display: flex; gap: 18px; margin-top: 25px; padding-top: 19px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 		.legend span { display: flex; align-items: center; gap: 7px; }
+		.customer-status { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+		.customer-status h3 { margin: 0 0 5px; font: 700 15px 'Manrope', sans-serif; }
+		.customer-status p { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+		.customer-status-result { margin-top: 12px; color: #52605e; font-size: 12px; }
+		.customer-status-result strong { color: var(--teal); }
 		.swatch { width: 12px; height: 12px; border: 1px solid var(--line); border-radius: 2px; background: #f3f4f2; }
 		.swatch.reserved { border-color: #e5c684; background: #f8edcf; }
 		.swatch.red { border-color: #f1c7c0; background: var(--coral-pale); }
@@ -122,6 +127,10 @@
 		.reservation-item strong { display: block; margin-bottom: 5px; font-size: 14px; }
 		.reservation-item p { margin: 3px 0; color: #52605e; font-size: 12px; }
 		.reservation-item .reservation-meta { color: var(--muted); font-size: 11px; }
+		.reservation-actions { display: flex; gap: 8px; margin-top: 12px; }
+		.reservation-actions button { width: auto; border: 1px solid var(--teal); border-radius: 5px; padding: 7px 12px; font-size: 12px; font-weight: 700; }
+		.reservation-actions .confirm-reservation { color: #fff; background: var(--teal); }
+		.reservation-actions .deny-reservation { border-color: #e2a39b; color: #a74d44; background: #fff; }
 		.admin-filters { display: grid; grid-template-columns: 1fr 180px; gap: 10px; margin-bottom: 16px; }
 		.audit-list { display: grid; gap: 7px; margin-top: 14px; }
 		.audit-entry { padding: 10px 12px; border-left: 2px solid var(--teal); color: #52605e; background: #fbfcfa; font-size: 12px; }
@@ -181,6 +190,7 @@
 					<div class="weekdays"><div class="weekday">Sun</div><div class="weekday">Mon</div><div class="weekday">Tue</div><div class="weekday">Wed</div><div class="weekday">Thu</div><div class="weekday">Fri</div><div class="weekday">Sat</div></div>
 					<div class="days" id="calendarDays"></div>
 					<div class="legend"><span><i class="swatch"></i> Available</span><span><i class="swatch reserved"></i> Reserved</span><span><i class="swatch red"></i> Unavailable</span><span><i class="swatch" style="outline:2px solid #087f77;outline-offset:-2px"></i> Today</span></div>
+					<div class="customer-status"><h3>Check my reservation</h3><p>Enter your phone number to see your reservation status.</p><input id="customerPhoneLookup" type="tel" placeholder="e.g. +1 555 123 4567"><div class="customer-status-result" id="customerStatusResult">No reservation checked yet.</div></div>
 				</div>
 				<form class="booking-panel" id="bookingForm">
 					<h2>Reserve your stay</h2><p class="selected-date" id="selectedDate">Select connected available days</p>
@@ -209,11 +219,11 @@
 		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the phone number used for the reservation, then choose the day to cancel.</p><label for="cancelPhone">Phone number</label><input id="cancelPhone" type="tel" required placeholder="e.g. +66 81 234 5678"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter phone number first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
 	</dialog>
 	<dialog class="details-dialog" id="detailsDialog">
-		<form id="detailsForm"><button class="dialog-close icon-btn" id="closeDetails" type="button" aria-label="Close details"><span aria-hidden="true">&times;</span></button><h2>Reservation details</h2><div class="details-content" id="detailsContent"></div><label for="detailsStatus">Status</label><select id="detailsStatus"><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select><div class="details-actions"><button class="secondary-btn" id="closeDetailsButton" type="button">Close</button><button class="primary-btn" type="submit">Save status</button></div></form>
+		<form id="detailsForm"><button class="dialog-close icon-btn" id="closeDetails" type="button" aria-label="Close details"><span aria-hidden="true">&times;</span></button><h2>Reservation details</h2><div class="details-content" id="detailsContent"></div><div class="details-actions"><button class="secondary-btn" id="closeDetailsButton" type="button">Close</button></div></form>
 	</dialog>
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=admin-session"></script>
+	<script src="web.js?v=confirm-status"></script>
 </body>
 </html>

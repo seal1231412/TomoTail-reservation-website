@@ -32,10 +32,11 @@ const cancelDate = document.getElementById('cancelDate');
 const detailsDialog = document.getElementById('detailsDialog');
 const detailsForm = document.getElementById('detailsForm');
 const detailsContent = document.getElementById('detailsContent');
-const detailsStatus = document.getElementById('detailsStatus');
 const closeDetails = document.getElementById('closeDetails');
 const closeDetailsButton = document.getElementById('closeDetailsButton');
 const languageToggle = document.getElementById('languageToggle');
+const customerPhoneLookup = document.getElementById('customerPhoneLookup');
+const customerStatusResult = document.getElementById('customerStatusResult');
 
 const appConfig = window.appConfig || {};
 const isSupabaseConfigured = Boolean(appConfig.supabaseUrl && appConfig.supabaseAnonKey && !appConfig.supabaseUrl.includes('YOUR_PROJECT_ID'));
@@ -211,9 +212,25 @@ function renderReservationList() {
 		const first = entries[0];
 		const dates = entries.map((entry) => formatDate(entry.date)).join(', ');
 		const weights = Array.isArray(first.dogs) && first.dogs.length ? first.dogs.map((dog) => `${dog.weight} kg`).join(', ') : 'Not provided';
-		return `<article class="reservation-item"><button type="button" data-reservation-id="${escapeHTML(reservationId)}"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} | <b>Phone:</b> ${escapeHTML(first.phone || 'Not provided')}</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p><b>Status:</b> ${escapeHTML(first.status)} | <b>Notes:</b> ${escapeHTML(first.notes || 'None')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></button></article>`;
+		return `<article class="reservation-item"><button type="button" data-reservation-id="${escapeHTML(reservationId)}"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} | <b>Phone:</b> ${escapeHTML(first.phone || 'Not provided')}</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p><b>Status:</b> ${escapeHTML(first.status)} | <b>Notes:</b> ${escapeHTML(first.notes || 'None')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></button><div class="reservation-actions"><button class="confirm-reservation" type="button" data-status-id="${escapeHTML(reservationId)}" data-status="confirmed">Confirm</button><button class="deny-reservation" type="button" data-status-id="${escapeHTML(reservationId)}" data-status="cancelled">Deny</button></div></article>`;
 	}).join('');
 	reservationItems.querySelectorAll('[data-reservation-id]').forEach((button) => button.addEventListener('click', () => openReservationDetails(button.dataset.reservationId)));
+	reservationItems.querySelectorAll('[data-status-id]').forEach((button) => button.addEventListener('click', () => updateReservationStatus(button.dataset.statusId, button.dataset.status)));
+}
+
+function updateCustomerStatus() {
+	const phone = customerPhoneLookup.value.trim();
+	if (!phone) return customerStatusResult.textContent = 'Enter your phone number to check.';
+	const reservations = [...getReservationGroups().values()].filter((entries) => entries[0].phone?.trim() === phone);
+	customerStatusResult.innerHTML = reservations.length ? reservations.map((entries) => `<p>${entries.map((entry) => escapeHTML(formatDate(entry.date))).join(', ')}: <strong>${escapeHTML(entries[0].status)}</strong></p>`).join('') : 'No reservation found for this phone number.';
+}
+
+async function updateReservationStatus(reservationId, status) {
+	storedReservations = storedReservations.map((reservation) => normalizeReservation(reservation).reservationId === reservationId ? { ...reservation, status } : reservation);
+	await persistStore();
+	await writeAudit(`Reservation ${status}`, reservationId, { status });
+	renderCalendar();
+	loadAuditEntries();
 }
 
 function escapeHTML(value) {
@@ -235,7 +252,6 @@ function openReservationDetails(reservationId) {
 	if (!entries) return;
 	const reservation = entries[0];
 	detailsContent.innerHTML = `<p><b>Guest:</b> ${escapeHTML(reservation.name || 'Test reservation')}</p><p><b>Phone:</b> ${escapeHTML(reservation.phone || 'Not provided')}</p><p><b>Dates:</b> ${entries.map((entry) => formatDate(entry.date)).join(', ')}</p><p><b>Dogs:</b> ${dogsIn(reservation)}</p><p><b>Weights:</b> ${escapeHTML((reservation.dogs || []).map((dog) => `${dog.weight} kg`).join(', ') || 'Not provided')}</p><p><b>Drop-off:</b> ${escapeHTML(reservation.dropOff || 'Not selected')}</p><p><b>Pick-up:</b> ${escapeHTML(reservation.pickUp || 'Not selected')}</p><p><b>Notes:</b> ${escapeHTML(reservation.notes || 'None')}</p>`;
-	detailsStatus.value = reservation.status;
 	selectedReservationId = reservationId;
 	detailsDialog.showModal();
 }
@@ -503,16 +519,7 @@ reservationSearch.addEventListener('input', renderReservationList);
 reservationStatusFilter.addEventListener('change', renderReservationList);
 closeDetails.addEventListener('click', () => detailsDialog.close());
 closeDetailsButton.addEventListener('click', () => detailsDialog.close());
-detailsForm.addEventListener('submit', async (event) => {
-	event.preventDefault();
-	if (!selectedReservationId) return;
-	storedReservations = storedReservations.map((reservation) => normalizeReservation(reservation).reservationId === selectedReservationId ? { ...reservation, status: detailsStatus.value } : reservation);
-	await persistStore();
-	await writeAudit('Updated reservation status', selectedReservationId, { status: detailsStatus.value });
-	detailsDialog.close();
-	renderCalendar();
-	loadAuditEntries();
-});
+customerPhoneLookup.addEventListener('input', updateCustomerStatus);
 saveCapacity.addEventListener('click', async () => {
 	const value = Math.max(1, Math.min(100, Number(capacityInput.value) || 5));
 	capacityInput.value = value;
