@@ -209,7 +209,7 @@ function renderReservationList() {
 		reservationItems.innerHTML = '<p class="reservation-meta">No reservations yet.</p>';
 		return;
 	}
-	reservationItems.innerHTML = `<div class="reservation-table-wrap"><table class="reservation-table"><thead><tr><th>Date</th><th>Name</th><th>Phone number</th><th>Dogs</th><th>Weight</th><th>Time</th><th>Status</th><th>Notes</th><th>Decision</th></tr></thead><tbody>${reservations.map(([reservationId, entries]) => {
+	reservationItems.innerHTML = `<div class="reservation-table-wrap"><table class="reservation-table"><thead><tr><th>Date</th><th>Name</th><th>Phone number</th><th>Amount of dogs</th><th>Weight of dogs</th><th>Time</th><th>Status</th><th>Notes</th><th>Decision</th></tr></thead><tbody>${reservations.map(([reservationId, entries]) => {
 		const first = entries[0];
 		const dates = entries.map((entry) => formatDate(entry.date)).join(', ');
 		const weights = Array.isArray(first.dogs) && first.dogs.length ? first.dogs.map((dog) => `${dog.weight} kg`).join(', ') : 'Not provided';
