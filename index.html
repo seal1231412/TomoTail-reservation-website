@@ -53,6 +53,8 @@
 		.calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
 		.month-title { margin: 0; font: 700 20px 'Manrope', sans-serif; letter-spacing: -.4px; }
 		.month-actions { display: flex; gap: 7px; }
+		.admin-calendar-label { display: none; align-items: center; color: var(--teal); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+		.workspace.admin-active .admin-calendar-label { display: flex; }
 		.icon-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 5px; display: grid; place-items: center; color: var(--ink); background: #fff; }
 		.icon-btn:hover { color: var(--teal); border-color: var(--teal); }
 		.weekdays, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
@@ -194,7 +196,7 @@
 			</header>
 			<section class="workspace" aria-label="Reservation calendar">
 				<div class="calendar-panel">
-					<div class="calendar-head"><h2 class="month-title" id="monthTitle"></h2><div class="month-actions"><button class="icon-btn" id="previousMonth" type="button" aria-label="Previous month"><i class="icon-chevron-left"></i></button><button class="icon-btn" id="nextMonth" type="button" aria-label="Next month"><i class="icon-chevron-right"></i></button></div></div>
+					<div class="calendar-head"><h2 class="month-title" id="monthTitle"></h2><div class="month-actions"><span class="admin-calendar-label" id="adminCalendarLabel">Admin calendar</span><button class="icon-btn" id="previousMonth" type="button" aria-label="Previous month"><i class="icon-chevron-left"></i></button><button class="icon-btn" id="nextMonth" type="button" aria-label="Next month"><i class="icon-chevron-right"></i></button></div></div>
 					<div class="weekdays"><div class="weekday">Sun</div><div class="weekday">Mon</div><div class="weekday">Tue</div><div class="weekday">Wed</div><div class="weekday">Thu</div><div class="weekday">Fri</div><div class="weekday">Sat</div></div>
 					<div class="days" id="calendarDays"></div>
 					<div class="legend"><span><i class="swatch"></i> Available</span><span><i class="swatch reserved"></i> Reserved</span><span><i class="swatch red"></i> Unavailable</span><span><i class="swatch" style="outline:2px solid #087f77;outline-offset:-2px"></i> Today</span></div>
@@ -232,6 +234,6 @@
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=label-fix"></script>
+	<script src="web.js?v=booking-safeguards"></script>
 </body>
 </html>

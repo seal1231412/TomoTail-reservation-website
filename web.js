@@ -191,6 +191,10 @@ function dogsIn(reservation) {
 	return Array.isArray(reservation.dogs) ? reservation.dogs.length : Math.max(1, Number(reservation.dogCount) || 1);
 }
 
+function normalizePhone(phone) {
+	return String(phone || '').replace(/\D/g, '');
+}
+
 function renderReservationList() {
 	if (!reservationItems) return;
 	const groupedReservations = new Map();
@@ -572,7 +576,7 @@ document.getElementById('cancelButton').addEventListener('click', () => {
 function updateCancellationDates() {
 	const phone = cancelPhone.value.trim();
 	const matchingReservations = new Map();
-	storedReservations.filter((reservation) => reservation.phone?.trim() === phone).forEach((reservation) => {
+	storedReservations.filter((reservation) => normalizePhone(reservation.phone) === normalizePhone(phone)).forEach((reservation) => {
 		const reservationId = reservation.reservationId || `legacy-${reservation.date}`;
 		if (!matchingReservations.has(reservationId)) matchingReservations.set(reservationId, []);
 		matchingReservations.get(reservationId).push(reservation);
@@ -593,9 +597,10 @@ cancelForm.addEventListener('submit', async (event) => {
 	const matchingIndexes = [];
 	storedReservations.forEach((reservation, index) => {
 		const reservationId = reservation.reservationId || `legacy-${reservation.date}`;
-		if (reservationId === cancelDate.value && reservation.phone?.trim() === cancelPhone.value.trim()) matchingIndexes.push(index);
+		if (reservationId === cancelDate.value && normalizePhone(reservation.phone) === normalizePhone(cancelPhone.value)) matchingIndexes.push(index);
 	});
 	if (!matchingIndexes.length) return showToast('No matching reservation found.');
+	if (!confirm('Cancel this reservation? This cannot be undone.')) return;
 	matchingIndexes.reverse().forEach((index) => {
 		const [reservation] = storedReservations.splice(index, 1);
 		const remainingDogs = (reservationCounts.get(reservation.date) || 0) - dogsIn(reservation);
@@ -634,6 +639,8 @@ bookingForm.addEventListener('submit', async (event) => {
 	const fullDate = dates.find((date) => (reservationCounts.get(date) || 0) + requestedDogs > maxReservationsPerDay);
 	if (fullDate) return showToast('That reservation is too large for the remaining capacity. The day is full.');
 	const reservationDetails = { reservationId: `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: guestName.value, phone: guestPhone.value, notes: reservationNotes.value.trim(), dogCount: weights.length, dogs: weights.map((weight, index) => ({ number: index + 1, weight })), dropOff: dropOff.value, pickUp: pickUp.value };
+	const duplicateDate = dates.find((date) => storedReservations.some((reservation) => reservation.status !== 'cancelled' && reservation.date === date && normalizePhone(reservation.phone) === normalizePhone(reservationDetails.phone)));
+	if (duplicateDate) return showToast('This phone number already has a reservation on one of those dates.');
 	dates.forEach((date) => {
 		storedReservations.push({ date, ...reservationDetails });
 		reservationCounts.set(date, (reservationCounts.get(date) || 0) + weights.length);
