@@ -172,6 +172,8 @@ let storedUnavailable = [];
 let storedReservations = [];
 let auditEntries = [];
 let selectedReservationId = null;
+const ADMIN_SESSION_KEY = 'harborAdminLastActive';
+const ADMIN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const unavailableDates = new Set();
 const reservationCounts = new Map();
 
@@ -458,9 +460,28 @@ function enableAdminMode() {
 	editingAvailability = false;
 	selectedDates.clear();
 	workspace.classList.add('admin-active');
+	localStorage.setItem(ADMIN_SESSION_KEY, String(Date.now()));
 	document.getElementById('adminButton').innerHTML = `<i class="icon-unlock-keyhole"></i> ${t('adminMode')}`;
 	showToast('Admin mode enabled');
 	renderCalendar();
+}
+
+function refreshAdminSession() {
+	if (adminMode) localStorage.setItem(ADMIN_SESSION_KEY, String(Date.now()));
+}
+
+async function restoreAdminMode() {
+	if (!supabaseClient) return;
+	const lastActive = Number(localStorage.getItem(ADMIN_SESSION_KEY));
+	if (!lastActive || Date.now() - lastActive > ADMIN_SESSION_TIMEOUT_MS) {
+		localStorage.removeItem(ADMIN_SESSION_KEY);
+		return;
+	}
+	const { data } = await supabaseClient.auth.getSession();
+	if (data.session) {
+		enableAdminMode();
+		loadAuditEntries();
+	}
 }
 document.getElementById('adminButton').addEventListener('click', () => {
 	if (adminMode) return;
@@ -508,10 +529,12 @@ document.getElementById('closeAdmin').addEventListener('click', () => {
 	adminMode = false;
 	editingAvailability = false;
 	workspace.classList.remove('admin-active');
+	localStorage.removeItem(ADMIN_SESSION_KEY);
 	if (supabaseClient) supabaseClient.auth.signOut();
 	document.getElementById('adminButton').innerHTML = `<i class="icon-lock-keyhole"></i> ${t('adminLogin')}`;
 	renderCalendar();
 });
+['click', 'keydown', 'pointerdown'].forEach((eventName) => document.addEventListener(eventName, refreshAdminSession));
 availabilitySwitch.addEventListener('click', () => {
 	editAvailability.click();
 });
@@ -625,6 +648,7 @@ languageToggle.addEventListener('click', () => {
 loadInitialStore().then(() => {
 	storedUnavailable.forEach((date) => unavailableDates.add(date));
 	applyLanguage();
+	restoreAdminMode();
 	}).catch((error) => {
 		console.error('Reservation data failed to load.', error);
 		showToast('Could not load shared reservations.');
