@@ -316,7 +316,6 @@ function applyLanguage() {
 	document.querySelector('.nav-label').textContent = t('workspace');
 	document.querySelector('.nav-item span').textContent = t('calendar');
 	document.querySelector('.sidebar-foot').firstChild.textContent = `${t('signedIn')} `;
-	document.querySelector('.topbar .eyebrow').textContent = t('garden');
 	document.querySelector('h1').textContent = t('title');
 	document.querySelector('.subtitle').textContent = t('subtitle');
 	document.getElementById('adminButton').innerHTML = `<i class="${adminMode ? 'icon-unlock-keyhole' : 'icon-lock-keyhole'}"></i> ${adminMode ? t('adminMode') : t('adminLogin')}`;
