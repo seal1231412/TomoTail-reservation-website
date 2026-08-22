@@ -342,13 +342,13 @@ function datesBetween(startKey, endKey) {
 }
 
 function updateAdminPanel() {
+	renderReservationList();
 	if (!adminMode) return;
 	availabilitySwitch.classList.toggle('on', editingAvailability);
 	availabilitySwitch.disabled = false;
 	const unavailableCount = [...unavailableDates].filter((key) => key.startsWith(`${displayedMonth.getFullYear()}-${String(displayedMonth.getMonth() + 1).padStart(2, '0')}`)).length;
 	const totalReservations = [...reservationCounts.values()].reduce((total, count) => total + count, 0);
 	overviewText.textContent = currentLanguage === 'th' ? `เดือนนี้ปิด ${unavailableCount} วัน มีการจองทั้งหมด ${totalReservations} รายการ` : `${unavailableCount} closed day${unavailableCount === 1 ? '' : 's'} this month. ${totalReservations} reservation${totalReservations === 1 ? '' : 's'} in total.`;
-	renderReservationList();
 }
 
 function showToast(message) {
