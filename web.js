@@ -36,6 +36,16 @@ function readLocalStorage(key, fallback = []) {
 	}
 }
 
+function normalizeReservation(reservation) {
+	return {
+		...reservation,
+		reservationId: reservation.reservationId || reservation.reservationid || reservation.id,
+		dogCount: reservation.dogCount ?? reservation.dogcount ?? 0,
+		dropOff: reservation.dropOff || reservation.dropoff || '',
+		pickUp: reservation.pickUp || reservation.pickup || ''
+	};
+}
+
 async function loadInitialStore() {
 	const localUnavailable = readLocalStorage('harborUnavailable', []);
 	const localReservations = readLocalStorage('harborReservations', []);
@@ -55,7 +65,7 @@ async function loadInitialStore() {
 			}
 
 			if (!reservationsResponse.error && Array.isArray(reservationsResponse.data)) {
-				fallbackReservations = reservationsResponse.data;
+				fallbackReservations = reservationsResponse.data.map(normalizeReservation);
 			}
 		} catch (error) {
 			console.warn('Supabase read failed, falling back to browser storage.', error);
@@ -75,19 +85,29 @@ async function persistStore() {
 
 	if (supabase) {
 		try {
-			await supabase.from('unavailable_dates').upsert(
+			const unavailableResponse = await supabase.from('unavailable_dates').upsert(
 				[...unavailableDates].map((date) => ({ date })),
 				{ onConflict: 'date' }
 			);
-			await supabase.from('reservations').upsert(
+			if (unavailableResponse.error) throw unavailableResponse.error;
+			const reservationsResponse = await supabase.from('reservations').upsert(
 				storedReservations.map((reservation) => ({
-					id: reservation.reservationId || reservation.id || `${reservation.date}-${reservation.email || 'guest'}`,
-					...reservation
+					id: `${reservation.reservationId || reservation.reservationid || reservation.id}-${reservation.date}`,
+					reservationid: reservation.reservationId || reservation.reservationid || reservation.id,
+					date: reservation.date,
+					name: reservation.name || '',
+					email: reservation.email || '',
+					dogcount: Number(reservation.dogCount ?? reservation.dogcount) || 0,
+					dogs: Array.isArray(reservation.dogs) ? reservation.dogs : [],
+					dropoff: reservation.dropOff || reservation.dropoff || '',
+					pickup: reservation.pickUp || reservation.pickup || ''
 				})),
 				{ onConflict: 'id' }
 			);
+			if (reservationsResponse.error) throw reservationsResponse.error;
 		} catch (error) {
-			console.warn('Supabase write failed; browser storage remains as fallback.', error);
+			console.error('Supabase write failed; browser storage remains as fallback.', error);
+			showToast('Could not save to the shared database. Check Supabase settings.');
 		}
 	}
 }
@@ -252,7 +272,7 @@ function selectDate(key) {
 		if (!editingAvailability) return showToast(currentLanguage === 'th' ? 'กรุณาเปิดแก้ไขวันว่างก่อนเปลี่ยนวันที่' : 'Enable Edit availability before changing days.');
 		if ((reservationCounts.get(key) || 0) > 0) return showToast(currentLanguage === 'th' ? 'ไม่สามารถเปลี่ยนวันที่มีการจองแล้ว' : 'Reserved days cannot be changed.');
 		if (unavailableDates.has(key)) unavailableDates.delete(key); else unavailableDates.add(key);
-		localStorage.setItem('harborUnavailable', JSON.stringify([...unavailableDates]));
+		persistStore();
 		renderCalendar();
 		return;
 	}
