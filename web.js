@@ -13,6 +13,7 @@ const availabilitySwitch = document.getElementById('availabilitySwitch');
 const editAvailability = document.getElementById('editAvailability');
 const adminHelp = document.getElementById('adminHelp');
 const overviewText = document.getElementById('overviewText');
+const reservationItems = document.getElementById('reservationItems');
 const toast = document.getElementById('toast');
 const loginDialog = document.getElementById('loginDialog');
 const loginForm = document.getElementById('loginForm');
@@ -143,6 +144,31 @@ function buildReservationCounts() {
 
 function dogsIn(reservation) {
 	return Array.isArray(reservation.dogs) ? reservation.dogs.length : Math.max(1, Number(reservation.dogCount) || 1);
+}
+
+function renderReservationList() {
+	if (!reservationItems) return;
+	const groupedReservations = new Map();
+	storedReservations.map(normalizeReservation).forEach((reservation) => {
+		const reservationId = reservation.reservationId || `legacy-${reservation.date}-${reservation.email || 'guest'}`;
+		if (!groupedReservations.has(reservationId)) groupedReservations.set(reservationId, []);
+		groupedReservations.get(reservationId).push(reservation);
+	});
+	const reservations = [...groupedReservations.entries()].sort(([, first], [, second]) => first[0].date.localeCompare(second[0].date));
+	if (!reservations.length) {
+		reservationItems.innerHTML = '<p class="reservation-meta">No reservations yet.</p>';
+		return;
+	}
+	reservationItems.innerHTML = reservations.map(([reservationId, entries]) => {
+		const first = entries[0];
+		const dates = entries.map((entry) => formatDate(entry.date)).join(', ');
+		const weights = Array.isArray(first.dogs) && first.dogs.length ? first.dogs.map((dog) => `${dog.weight} kg`).join(', ') : 'Not provided';
+		return `<article class="reservation-item"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} (${escapeHTML(first.email || 'No email')})</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></article>`;
+	}).join('');
+}
+
+function escapeHTML(value) {
+	return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 }
 
 function dateKey(year, month, day) {
@@ -322,6 +348,7 @@ function updateAdminPanel() {
 	const unavailableCount = [...unavailableDates].filter((key) => key.startsWith(`${displayedMonth.getFullYear()}-${String(displayedMonth.getMonth() + 1).padStart(2, '0')}`)).length;
 	const totalReservations = [...reservationCounts.values()].reduce((total, count) => total + count, 0);
 	overviewText.textContent = currentLanguage === 'th' ? `เดือนนี้ปิด ${unavailableCount} วัน มีการจองทั้งหมด ${totalReservations} รายการ` : `${unavailableCount} closed day${unavailableCount === 1 ? '' : 's'} this month. ${totalReservations} reservation${totalReservations === 1 ? '' : 's'} in total.`;
+	renderReservationList();
 }
 
 function showToast(message) {

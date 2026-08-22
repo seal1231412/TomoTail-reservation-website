@@ -111,6 +111,14 @@
 		.tool-card { padding: 22px; border: 1px solid var(--line); background: #fff; }
 		.tool-card h3 { margin: 0 0 5px; font: 700 15px 'Manrope', sans-serif; }
 		.tool-card p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+		.reservation-list { margin-top: 20px; padding: 22px; border: 1px solid var(--line); background: #fff; }
+		.reservation-list h3 { margin: 0 0 5px; font: 700 17px 'Manrope', sans-serif; }
+		.reservation-list > p { margin: 0 0 16px; color: var(--muted); font-size: 12px; }
+		.reservation-items { display: grid; gap: 10px; }
+		.reservation-item { padding: 15px; border: 1px solid var(--line); border-left: 3px solid var(--teal); background: #fbfcfa; }
+		.reservation-item strong { display: block; margin-bottom: 5px; font-size: 14px; }
+		.reservation-item p { margin: 3px 0; color: #52605e; font-size: 12px; }
+		.reservation-item .reservation-meta { color: var(--muted); font-size: 11px; }
 		.availability-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--line); color: #52605e; font-size: 13px; }
 		.switch { width: 40px; height: 23px; border: 0; border-radius: 20px; padding: 3px; background: #cfd6d3; }
 		.switch::after { content: ''; display: block; width: 17px; height: 17px; border-radius: 50%; background: white; transition: transform .2s; }
@@ -173,6 +181,7 @@
 				<section class="admin-view" id="adminView">
 				<div class="admin-banner"><div><strong>Admin mode is on</strong><span id="adminHelp">Turn editing on, then click days to cycle them open or closed.</span></div><div class="admin-actions"><button class="edit-toggle" id="editAvailability" type="button">Edit availability</button><button class="icon-btn" id="closeAdmin" type="button" aria-label="Close admin mode"><i class="icon-x"></i></button></div></div>
 				<div class="admin-tools"><div class="tool-card"><h3>Availability legend</h3><p>Grey days can be reserved. Red days are closed or already reserved.</p><div class="availability-toggle"><span>Click-to-edit availability</span><button class="switch" id="availabilitySwitch" type="button" aria-label="Toggle availability editing"></button></div></div><div class="tool-card"><h3>Quick overview</h3><p id="overviewText"></p><div class="availability-toggle"><span>Reservations are stored locally</span><i class="icon-database" style="color:var(--teal)"></i></div><button class="reset-btn" id="resetReservations" type="button">Reset all reservations</button></div></div>
+				<div class="reservation-list"><h3>Reservations</h3><p>Review guest details, dates, times, and dogs.</p><div class="reservation-items" id="reservationItems"></div></div>
 				</section>
 			</section>
 		</main>
