@@ -15,7 +15,8 @@ create table if not exists reservations (
 );
 
 create table if not exists unavailable_dates (
-  date text primary key
+  date text primary key,
+  reason text
 );
 
 create index if not exists reservations_date_idx on reservations(date);
@@ -23,6 +24,7 @@ create index if not exists reservations_email_idx on reservations(email);
 alter table reservations add column if not exists phone text;
 alter table reservations add column if not exists notes text;
 alter table reservations add column if not exists status text not null default 'pending';
+alter table unavailable_dates add column if not exists reason text;
 
 create table if not exists app_settings (
   id integer primary key default 1 check (id = 1),
@@ -47,7 +49,6 @@ alter table audit_log enable row level security;
 
 drop policy if exists "Public can read reservations" on reservations;
 drop policy if exists "Public can insert reservations" on reservations;
-drop policy if exists "Public can delete reservations" on reservations;
 drop policy if exists "Public can read unavailable dates" on unavailable_dates;
 drop policy if exists "Public can insert unavailable dates" on unavailable_dates;
 drop policy if exists "Public can delete unavailable dates" on unavailable_dates;
@@ -65,7 +66,6 @@ drop policy if exists "Authenticated can insert audit log" on audit_log;
 
 create policy "Public can read reservations" on reservations for select to anon, authenticated using (true);
 create policy "Public can insert reservations" on reservations for insert to anon, authenticated with check (true);
-create policy "Public can delete reservations" on reservations for delete to anon, authenticated using (true);
 create policy "Public can read unavailable dates" on unavailable_dates for select to anon, authenticated using (true);
 create policy "Authenticated can update reservations" on reservations for update to authenticated using (true) with check (true);
 create policy "Authenticated can delete reservations" on reservations for delete to authenticated using (true);
@@ -74,3 +74,25 @@ create policy "Public can read settings" on app_settings for select to anon, aut
 create policy "Authenticated can manage settings" on app_settings for all to authenticated using (true) with check (true);
 create policy "Authenticated can read audit log" on audit_log for select to authenticated using (true);
 create policy "Authenticated can insert audit log" on audit_log for insert to authenticated with check (true);
+
+create or replace function cancel_reservation(lookup_phone text, lookup_reservation_id text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  cancelled_count integer;
+begin
+  update reservations
+  set status = 'cancelled'
+  where phone = lookup_phone
+    and reservationid = lookup_reservation_id
+    and status <> 'cancelled';
+  get diagnostics cancelled_count = row_count;
+  return cancelled_count;
+end;
+$$;
+
+revoke all on function cancel_reservation(text, text) from public;
+grant execute on function cancel_reservation(text, text) to anon, authenticated;

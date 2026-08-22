@@ -66,6 +66,8 @@
 		.day.booked { border-color: #f1c7c0; color: #a54d45; background: var(--coral-pale); }
 		.day.busy { border-color: #eeb39e; color: #9a5139; background: #f8ddd1; }
 		.day.reserved { border-color: #e5c684; color: #87652c; background: #f8edcf; }
+		.day.pending { border-color: #e5c684; color: #87652c; background: #f8edcf; }
+		.day.confirmed { border-color: #9bcfc1; color: #267363; background: #dff1ed; }
 		.day.full { border-color: #df8e85; color: #913b35; background: #f3c4bd; }
 		.day.past { border-color: #e1e4e2; color: #a4aba7; background: #e9ecea; }
 		.day.today { outline: 2px solid var(--teal); outline-offset: -2px; }
@@ -207,7 +209,7 @@
 					<h2>Reserve your stay</h2><p class="selected-date" id="selectedDate">Select connected available days</p>
 					<div class="check-row"><input id="testMode" type="checkbox"><label for="testMode">Test mode: skip guest details</label></div>
 					<div class="form-row"><label for="guestName">Your name</label><input id="guestName" required placeholder="e.g. Alex Morgan"></div>
-					<div class="form-row"><label for="guestPhone">Phone number</label><input id="guestPhone" type="tel" required placeholder="e.g. +66 81 234 5678"></div>
+					<div class="form-row"><label for="guestPhone">Phone number</label><input id="guestPhone" type="tel" required pattern="[0-9+() .-]{7,25}" placeholder="e.g. +66 81 234 5678"></div>
 					<div class="form-row"><label for="dogCount">How many dogs?</label><input id="dogCount" type="number" min="0" max="10" value="0" required></div>
 					<div class="form-row"><label id="dogWeightsLabel">Weight for each dog (kg)</label><div class="weights" id="dogWeights"></div></div>
 					<div class="form-row inline"><div><label for="dropOff">Drop-off time</label><select id="dropOff" required></select></div><div><label for="pickUp">Pick-up time</label><select id="pickUp" required></select></div></div>
@@ -216,7 +218,7 @@
 				</form>
 				<section class="admin-view" id="adminView">
 				<div class="admin-banner"><div><strong>Admin mode is on</strong><span id="adminHelp">Turn editing on, then click days to cycle them open or closed.</span></div><div class="admin-actions"><button class="edit-toggle" id="editAvailability" type="button">Edit availability</button><button class="icon-btn" id="closeAdmin" type="button" aria-label="Close admin mode"><i class="icon-x"></i></button></div></div>
-				<div class="admin-tools"><div class="tool-card"><h3>Availability legend</h3><p>Grey days can be reserved. Red days are closed or already reserved.</p><div class="availability-toggle"><span>Click-to-edit availability</span><button class="switch" id="availabilitySwitch" type="button" aria-label="Toggle availability editing"></button></div></div><div class="tool-card"><h3>Quick overview</h3><p id="overviewText"></p><label for="capacityInput">Maximum dogs per day</label><input id="capacityInput" type="number" min="1" max="100" value="5"><button class="secondary-btn" id="saveCapacity" type="button">Save capacity</button><div class="availability-toggle"><span>Reservations are stored locally</span><i class="icon-database" style="color:var(--teal)"></i></div><button class="reset-btn" id="resetReservations" type="button">Reset all reservations</button></div></div>
+				<div class="admin-tools"><div class="tool-card"><h3>Availability legend</h3><p>Grey days can be reserved. Red days are closed or already reserved.</p><label for="availabilityReason">Reason for closed days</label><input id="availabilityReason" placeholder="Holiday, maintenance, or other reason"><div class="availability-toggle"><span>Click-to-edit availability</span><button class="switch" id="availabilitySwitch" type="button" aria-label="Toggle availability editing"></button></div></div><div class="tool-card"><h3>Quick overview</h3><p id="overviewText"></p><label for="capacityInput">Maximum dogs per day</label><input id="capacityInput" type="number" min="1" max="100" value="5"><button class="secondary-btn" id="saveCapacity" type="button">Save capacity</button><div class="availability-toggle"><span>Reservations are stored locally</span><i class="icon-database" style="color:var(--teal)"></i></div><button class="reset-btn" id="resetReservations" type="button">Reset all reservations</button></div></div>
 				<div class="reservation-list"><h3>Reservations</h3><p>Review guest details, dates, times, and dogs.</p><div class="admin-filters"><input id="reservationSearch" type="search" placeholder="Search name or phone"><select id="reservationStatusFilter"><option value="all">All statuses</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select></div><div class="reservation-items" id="reservationItems"></div></div>
 				<div class="reservation-list"><h3>Audit history</h3><p>Recent admin actions.</p><div class="audit-list" id="auditItems"></div></div>
 				</section>
@@ -227,7 +229,7 @@
 		<form id="loginForm"><button class="dialog-close icon-btn" id="closeLogin" type="button" aria-label="Close login"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Staff access</p><h2>Admin login</h2><p>Sign in with your staff account.</p><label for="adminEmail">Staff email</label><input id="adminEmail" type="email" placeholder="staff@example.com" required><label for="adminPassword">Password</label><input id="adminPassword" type="password" placeholder="Enter password" required><button class="primary-btn" type="submit">Continue</button></form>
 	</dialog>
 	<dialog class="cancel-dialog" id="cancelDialog">
-		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the phone number used for the reservation, then choose the day to cancel.</p><label for="cancelPhone">Phone number</label><input id="cancelPhone" type="tel" required placeholder="e.g. +66 81 234 5678"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter phone number first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
+		<form id="cancelForm"><button class="dialog-close icon-btn" id="closeCancel" type="button" aria-label="Close cancellation"><span aria-hidden="true">&times;</span></button><p class="eyebrow">Reservation changes</p><h2>Cancel a reservation</h2><p>Enter the phone number used for the reservation, then choose the day to cancel.</p><label for="cancelPhone">Phone number</label><input id="cancelPhone" type="tel" pattern="[0-9+() .-]{7,25}" required placeholder="e.g. +66 81 234 5678"><label for="cancelDate">Reservation day</label><select id="cancelDate" required disabled><option value="">Enter phone number first</option></select><button class="primary-btn" type="submit">Cancel reservation</button></form>
 	</dialog>
 	<dialog class="details-dialog" id="detailsDialog">
 		<form id="detailsForm"><button class="dialog-close icon-btn" id="closeDetails" type="button" aria-label="Close details"><span aria-hidden="true">&times;</span></button><h2>Reservation details</h2><div class="details-content" id="detailsContent"></div><div class="details-actions"><button class="secondary-btn" id="closeDetailsButton" type="button">Close</button></div></form>
@@ -235,6 +237,6 @@
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=decision-complete"></script>
+	<script src="web.js?v=admin-calendar-security"></script>
 </body>
 </html>

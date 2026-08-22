@@ -18,6 +18,7 @@ const reservationItems = document.getElementById('reservationItems');
 const reservationSearch = document.getElementById('reservationSearch');
 const reservationStatusFilter = document.getElementById('reservationStatusFilter');
 const capacityInput = document.getElementById('capacityInput');
+const availabilityReason = document.getElementById('availabilityReason');
 const saveCapacity = document.getElementById('saveCapacity');
 const auditItems = document.getElementById('auditItems');
 const toast = document.getElementById('toast');
@@ -80,7 +81,7 @@ async function loadInitialStore() {
 			]);
 
 			if (!unavailableResponse.error && Array.isArray(unavailableResponse.data)) {
-				fallbackUnavailable = unavailableResponse.data.map((row) => row.date);
+				fallbackUnavailable = unavailableResponse.data.map((row) => { unavailableReasons.set(row.date, row.reason || ''); return row.date; });
 			}
 
 			if (!reservationsResponse.error && Array.isArray(reservationsResponse.data)) {
@@ -121,7 +122,7 @@ async function persistStore(newReservations = null) {
 			}
 			const unavailableDeleteResponse = await supabaseClient.from('unavailable_dates').delete().not('date', 'is', null);
 			if (unavailableDeleteResponse.error) throw unavailableDeleteResponse.error;
-			const unavailableRows = [...unavailableDates].map((date) => ({ date }));
+			const unavailableRows = [...unavailableDates].map((date) => ({ date, reason: unavailableReasons.get(date) || '' }));
 			if (unavailableRows.length) {
 				const unavailableResponse = await supabaseClient.from('unavailable_dates').insert(unavailableRows);
 				if (unavailableResponse.error) throw unavailableResponse.error;
@@ -176,6 +177,7 @@ let selectedReservationId = null;
 const ADMIN_SESSION_KEY = 'harborAdminLastActive';
 const ADMIN_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const unavailableDates = new Set();
+const unavailableReasons = new Map();
 const reservationCounts = new Map();
 
 function buildReservationCounts() {
@@ -387,10 +389,12 @@ function renderCalendar() {
 		const isPast = key < todayKey;
 		const isUnavailable = isClosed || isFull;
 		const spotsLeft = Math.max(0, maxReservationsPerDay - reservationCount);
+		const statusClass = reservationCount > 0 && storedReservations.some((reservation) => reservation.date === key && reservation.status === 'confirmed') ? ' confirmed' : reservationCount > 0 ? ' pending' : '';
 		const dayButton = document.createElement('button');
 		dayButton.type = 'button';
-		dayButton.className = `day${isUnavailable ? ' booked' : ''}${reservationCount > 0 && !isFull && !isClosed ? ' reserved' : ''}${reservationCount >= 3 && !isUnavailable ? ' busy' : ''}${isFull ? ' full' : ''}${isPast ? ' past' : ''}${key === todayKey ? ' today' : ''}${selectedDates.has(key) ? ' selected' : ''}`;
+		dayButton.className = `day${isUnavailable ? ' booked' : ''}${reservationCount > 0 && !isFull && !isClosed ? ' reserved' : ''}${statusClass}${reservationCount >= 3 && !isUnavailable ? ' busy' : ''}${isFull ? ' full' : ''}${isPast ? ' past' : ''}${key === todayKey ? ' today' : ''}${selectedDates.has(key) ? ' selected' : ''}`;
 		dayButton.dataset.date = key;
+		dayButton.title = isClosed ? unavailableReasons.get(key) || '' : '';
 		dayButton.innerHTML = `<span class="day-number">${day}</span><span class="day-status">${isPast ? t('past') : isClosed ? t('closed') : isFull ? t('full') : `${spotsLeft} ${t('left')}`}</span>`;
 		dayButton.addEventListener('click', () => selectDate(key));
 		calendarDays.appendChild(dayButton);
@@ -402,7 +406,7 @@ function selectDate(key) {
 	if (adminMode) {
 		if (!editingAvailability) return showToast(currentLanguage === 'th' ? 'กรุณาเปิดแก้ไขวันว่างก่อนเปลี่ยนวันที่' : 'Enable Edit availability before changing days.');
 		if ((reservationCounts.get(key) || 0) > 0) return showToast(currentLanguage === 'th' ? 'ไม่สามารถเปลี่ยนวันที่มีการจองแล้ว' : 'Reserved days cannot be changed.');
-		if (unavailableDates.has(key)) unavailableDates.delete(key); else unavailableDates.add(key);
+		if (unavailableDates.has(key)) { unavailableDates.delete(key); unavailableReasons.delete(key); } else { unavailableDates.add(key); unavailableReasons.set(key, availabilityReason.value.trim()); }
 		persistStore();
 		writeAudit('Changed availability', null, { date: key, available: !unavailableDates.has(key) });
 		renderCalendar();
@@ -602,13 +606,13 @@ cancelForm.addEventListener('submit', async (event) => {
 	});
 	if (!matchingIndexes.length) return showToast('No matching reservation found.');
 	if (!confirm('Cancel this reservation? This cannot be undone.')) return;
-	matchingIndexes.reverse().forEach((index) => {
-		const [reservation] = storedReservations.splice(index, 1);
-		const remainingDogs = (reservationCounts.get(reservation.date) || 0) - dogsIn(reservation);
-		if (remainingDogs > 0) reservationCounts.set(reservation.date, remainingDogs); else reservationCounts.delete(reservation.date);
-	});
-	await persistStore();
-	await writeAudit('Cancelled reservation', cancelDate.value);
+	const reservation = storedReservations[matchingIndexes[0]];
+	if (supabaseClient) {
+		const { error } = await supabaseClient.rpc('cancel_reservation', { lookup_phone: reservation.phone, lookup_reservation_id: reservation.reservationId });
+		if (error) return showToast('Could not cancel the reservation.');
+	}
+	matchingIndexes.forEach((index) => { storedReservations[index] = { ...storedReservations[index], status: 'cancelled' }; });
+	localStorage.setItem('harborReservations', JSON.stringify(storedReservations));
 	cancelForm.reset();
 	updateCancellationDates();
 	cancelDialog.close();
