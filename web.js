@@ -181,6 +181,7 @@ const reservationCounts = new Map();
 function buildReservationCounts() {
 	reservationCounts.clear();
 	storedReservations.forEach((reservation) => {
+		if (reservation.status === 'cancelled') return;
 		const dogsInReservation = dogsIn(reservation);
 		reservationCounts.set(reservation.date, (reservationCounts.get(reservation.date) || 0) + dogsInReservation);
 	});
@@ -208,13 +209,12 @@ function renderReservationList() {
 		reservationItems.innerHTML = '<p class="reservation-meta">No reservations yet.</p>';
 		return;
 	}
-	reservationItems.innerHTML = reservations.map(([reservationId, entries]) => {
+	reservationItems.innerHTML = `<div class="reservation-table-wrap"><table class="reservation-table"><thead><tr><th>Date</th><th>Name</th><th>Phone number</th><th>Dogs</th><th>Weight</th><th>Time</th><th>Status</th><th>Notes</th><th>Decision</th></tr></thead><tbody>${reservations.map(([reservationId, entries]) => {
 		const first = entries[0];
 		const dates = entries.map((entry) => formatDate(entry.date)).join(', ');
 		const weights = Array.isArray(first.dogs) && first.dogs.length ? first.dogs.map((dog) => `${dog.weight} kg`).join(', ') : 'Not provided';
-		return `<article class="reservation-item"><button type="button" data-reservation-id="${escapeHTML(reservationId)}"><strong>${dates}</strong><p><b>Guest:</b> ${escapeHTML(first.name || 'Test reservation')} | <b>Phone:</b> ${escapeHTML(first.phone || 'Not provided')}</p><p><b>Dogs:</b> ${dogsIn(first)} | <b>Weights:</b> ${escapeHTML(weights)}</p><p><b>Time:</b> ${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</p><p><b>Status:</b> ${escapeHTML(first.status)} | <b>Notes:</b> ${escapeHTML(first.notes || 'None')}</p><p class="reservation-meta"><b>Booking ID:</b> ${escapeHTML(reservationId)}</p></button><div class="reservation-actions"><button class="confirm-reservation" type="button" data-status-id="${escapeHTML(reservationId)}" data-status="confirmed">Confirm</button><button class="deny-reservation" type="button" data-status-id="${escapeHTML(reservationId)}" data-status="cancelled">Deny</button></div></article>`;
-	}).join('');
-	reservationItems.querySelectorAll('[data-reservation-id]').forEach((button) => button.addEventListener('click', () => openReservationDetails(button.dataset.reservationId)));
+		return `<tr><td>${dates}</td><td>${escapeHTML(first.name || 'Test reservation')}</td><td>${escapeHTML(first.phone || 'Not provided')}</td><td>${dogsIn(first)}</td><td>${escapeHTML(weights)}</td><td>${escapeHTML(first.dropOff || 'Not selected')} - ${escapeHTML(first.pickUp || 'Not selected')}</td><td class="status">${escapeHTML(first.status)}</td><td>${escapeHTML(first.notes || 'None')}</td><td><div class="reservation-actions"><button class="confirm-reservation" type="button" data-status-id="${escapeHTML(reservationId)}" data-status="confirmed">Confirm</button><button class="deny-reservation" type="button" data-status-id="${escapeHTML(reservationId)}" data-status="cancelled">Deny</button></div></td></tr>`;
+	}).join('')}</tbody></table></div>`;
 	reservationItems.querySelectorAll('[data-status-id]').forEach((button) => button.addEventListener('click', () => updateReservationStatus(button.dataset.statusId, button.dataset.status)));
 }
 
@@ -631,6 +631,9 @@ bookingForm.addEventListener('submit', async (event) => {
 	const dates = [...selectedDates];
 	const weights = [...dogWeights.querySelectorAll('input')].map((input) => Number(input.value));
 	if (weights.some((weight) => !weight || weight <= 0)) return showToast('Enter a weight for every dog.');
+	const requestedDogs = weights.length;
+	const fullDate = dates.find((date) => (reservationCounts.get(date) || 0) + requestedDogs > maxReservationsPerDay);
+	if (fullDate) return showToast('That reservation is too large for the remaining capacity. The day is full.');
 	const reservationDetails = { reservationId: `booking-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: guestName.value, phone: guestPhone.value, notes: reservationNotes.value.trim(), dogCount: weights.length, dogs: weights.map((weight, index) => ({ number: index + 1, weight })), dropOff: dropOff.value, pickUp: pickUp.value };
 	dates.forEach((date) => {
 		storedReservations.push({ date, ...reservationDetails });

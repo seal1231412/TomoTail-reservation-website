@@ -131,6 +131,14 @@
 		.reservation-actions button { width: auto; border: 1px solid var(--teal); border-radius: 5px; padding: 7px 12px; font-size: 12px; font-weight: 700; }
 		.reservation-actions .confirm-reservation { color: #fff; background: var(--teal); }
 		.reservation-actions .deny-reservation { border-color: #e2a39b; color: #a74d44; background: #fff; }
+		.reservation-table-wrap { overflow-x: auto; }
+		.reservation-table { width: 100%; min-width: 850px; border-collapse: collapse; font-size: 12px; }
+		.reservation-table th { padding: 10px; color: var(--muted); background: #f3f4f2; font-size: 10px; letter-spacing: .07em; text-align: left; text-transform: uppercase; }
+		.reservation-table td { padding: 12px 10px; border-bottom: 1px solid var(--line); color: #52605e; vertical-align: top; }
+		.reservation-table tr:last-child td { border-bottom: 0; }
+		.reservation-table .status { font-weight: 700; text-transform: capitalize; }
+		.reservation-table .reservation-actions { margin-top: 0; white-space: nowrap; }
+		.reservation-table .reservation-actions button { padding: 6px 9px; }
 		.admin-filters { display: grid; grid-template-columns: 1fr 180px; gap: 10px; margin-bottom: 16px; }
 		.audit-list { display: grid; gap: 7px; margin-top: 14px; }
 		.audit-entry { padding: 10px 12px; border-left: 2px solid var(--teal); color: #52605e; background: #fbfcfa; font-size: 12px; }
@@ -224,6 +232,6 @@
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=confirm-status"></script>
+	<script src="web.js?v=capacity-table"></script>
 </body>
 </html>
