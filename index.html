@@ -58,6 +58,9 @@
 		.workspace.admin-active .calendar-panel { border-top: 4px solid var(--teal); }
 		.icon-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 5px; display: grid; place-items: center; color: var(--ink); background: #fff; }
 		.icon-btn:hover { color: var(--teal); border-color: var(--teal); }
+		.icon-chevron-left::before { content: '\003C'; }
+		.icon-chevron-right::before { content: '\003E'; }
+		.icon-x::before { content: '\00D7'; }
 		.weekdays, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
 		.weekday { padding-bottom: 8px; color: #9aa39f; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-align: center; text-transform: uppercase; }
 		.day { min-height: 75px; border: 1px solid var(--line); border-radius: 4px; padding: 9px; position: relative; color: #4e595f; background: #f3f4f2; text-align: left; transition: transform .15s, border-color .15s; }
@@ -237,6 +240,6 @@
 	<div class="toast" id="toast" role="status"></div>
 	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 	<script src="config.js"></script>
-	<script src="web.js?v=admin-calendar-security"></script>
+	<script src="web.js?v=icon-fallbacks"></script>
 </body>
 </html>
