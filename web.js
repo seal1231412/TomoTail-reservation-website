@@ -86,13 +86,17 @@ async function persistStore() {
 
 	if (supabaseClient) {
 		try {
-			const unavailableResponse = await supabaseClient.from('unavailable_dates').upsert(
-				[...unavailableDates].map((date) => ({ date })),
-				{ onConflict: 'date' }
-			);
-			if (unavailableResponse.error) throw unavailableResponse.error;
-			const reservationsResponse = await supabaseClient.from('reservations').upsert(
-				storedReservations.map((reservation) => ({
+			const unavailableDeleteResponse = await supabaseClient.from('unavailable_dates').delete().not('date', 'is', null);
+			if (unavailableDeleteResponse.error) throw unavailableDeleteResponse.error;
+			const unavailableRows = [...unavailableDates].map((date) => ({ date }));
+			if (unavailableRows.length) {
+				const unavailableResponse = await supabaseClient.from('unavailable_dates').insert(unavailableRows);
+				if (unavailableResponse.error) throw unavailableResponse.error;
+			}
+
+			const reservationDeleteResponse = await supabaseClient.from('reservations').delete().not('id', 'is', null);
+			if (reservationDeleteResponse.error) throw reservationDeleteResponse.error;
+			const reservationRows = storedReservations.map((reservation) => ({
 					id: `${reservation.reservationId || reservation.reservationid || reservation.id}-${reservation.date}`,
 					reservationid: reservation.reservationId || reservation.reservationid || reservation.id,
 					date: reservation.date,
@@ -102,10 +106,11 @@ async function persistStore() {
 					dogs: Array.isArray(reservation.dogs) ? reservation.dogs : [],
 					dropoff: reservation.dropOff || reservation.dropoff || '',
 					pickup: reservation.pickUp || reservation.pickup || ''
-				})),
-				{ onConflict: 'id' }
-			);
-			if (reservationsResponse.error) throw reservationsResponse.error;
+			}));
+			if (reservationRows.length) {
+				const reservationsResponse = await supabaseClient.from('reservations').insert(reservationRows);
+				if (reservationsResponse.error) throw reservationsResponse.error;
+			}
 		} catch (error) {
 			console.error('Supabase write failed; browser storage remains as fallback.', error);
 			showToast('Could not save to the shared database. Check Supabase settings.');
